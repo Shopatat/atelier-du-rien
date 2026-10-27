@@ -8,6 +8,7 @@
 
   var CLE_API    = "atelier-du-rien.cle";
   var CLE_MODELE = "atelier-du-rien.modele";
+  var CLE_VOIX   = "atelier-du-rien.voix";
   var URL_API    = "https://api.anthropic.com/v1/messages";
   var MODELE_PAR_DEFAUT = "claude-sonnet-5-5";
   var TOURS_ENVOYES = 24;   // on ne renvoie que la fin de la discussion
@@ -89,6 +90,77 @@
       return MODELE_PAR_DEFAUT;
     },
     ecrire: function(v){ return ecrire(CLE_MODELE, v); }
+  };
+
+  /* ---------- la voix : il lit ses réponses ---------- */
+  // Rien ne part sur un serveur ici : c'est le moteur de parole du téléphone.
+  var synth = window.speechSynthesis || null;
+  var voixFr = null;
+  function choisirVoix(){
+    if(!synth) return;
+    var toutes = [];
+    try{ toutes = synth.getVoices() || []; }catch(e){ return; }
+    var fr = toutes.filter(function(v){ return /^fr/i.test(v.lang || ""); });
+    // on préfère une voix installée sur l'appareil : pas de réseau, pas d'attente
+    voixFr = fr.filter(function(v){ return v.localService; })[0] || fr[0] || null;
+  }
+  if(synth){
+    choisirVoix();
+    try{ synth.addEventListener("voiceschanged", choisirVoix); }catch(e){}
+  }
+  var voix = {
+    possible: function(){ return !!synth && typeof window.SpeechSynthesisUtterance === "function"; },
+    active:   function(){ return lire(CLE_VOIX) === "1"; },
+    poser:    function(v){ return ecrire(CLE_VOIX, v ? "1" : ""); },
+    taire:    function(){ if(synth) try{ synth.cancel(); }catch(e){} },
+    dire:     function(t){
+      if(!voix.possible() || !t) return;
+      try{
+        synth.cancel();
+        var u = new window.SpeechSynthesisUtterance(String(t));
+        if(voixFr) u.voice = voixFr;
+        u.lang = (voixFr && voixFr.lang) || "fr-FR";
+        u.rate = 1; u.pitch = 1;
+        synth.speak(u);
+      }catch(e){}
+    }
+  };
+
+  /* ---------- la dictée : tu réponds à voix haute ---------- */
+  // Sur iPhone, la reconnaissance passe par Apple, comme le micro du clavier.
+  var Reco = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  var micro = {
+    possible: function(){ return !!Reco; },
+    // ecouter({surTexte(acquis, partiel), surFin(acquis), surErreur(msg)}) -> {arreter()}
+    ecouter: function(o){
+      if(!Reco) return null;
+      var r;
+      try{ r = new Reco(); }catch(e){ return null; }
+      r.lang = "fr-FR";
+      r.continuous = true;
+      r.interimResults = true;
+      var acquis = "";
+      r.onresult = function(ev){
+        var partiel = "";
+        for(var i = ev.resultIndex; i < ev.results.length; i++){
+          var m = ev.results[i][0].transcript;
+          if(ev.results[i].isFinal) acquis += (acquis ? " " : "") + String(m).trim();
+          else partiel += m;
+        }
+        o.surTexte(acquis, partiel.trim());
+      };
+      r.onerror = function(ev){
+        var c = ev && ev.error;
+        if(c === "aborted") return;
+        if(c === "not-allowed" || c === "service-not-allowed") o.surErreur("Micro refusé : autorise-le pour ce site.");
+        else if(c === "no-speech") o.surErreur("Rien entendu.");
+        else if(c === "audio-capture") o.surErreur("Aucun micro trouvé.");
+        else o.surErreur("La dictée s'est arrêtée.");
+      };
+      r.onend = function(){ o.surFin(acquis); };
+      try{ r.start(); }catch(e){ return null; }
+      return {arreter:function(){ try{ r.stop(); }catch(e){} }};
+    }
   };
 
   /* ---------- la consigne ---------- */
@@ -233,6 +305,7 @@
 
   window.Discussion = {
     ROLES:ROLES, MODELES:MODELES, role:role,
-    cle:cle, modele:modele, parler:parler
+    cle:cle, modele:modele, parler:parler,
+    voix:voix, micro:micro
   };
 })();

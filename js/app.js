@@ -509,6 +509,7 @@
   }
   function fermerPlateau(){
     arreterCauserie();
+    arreterDictee();
     causerie.sujetId = null;
     el("plateau").hidden = true;
     chrono.actif = false; chrono.fige = 0;
@@ -536,7 +537,48 @@
   }
   function arreterCauserie(){
     if(causerie.enCours){ causerie.enCours.annuler(); causerie.enCours = null; }
+    if(window.Discussion) window.Discussion.voix.taire();
     majEnvoi(false);
+  }
+
+  // La dictée : le micro remplit le champ, c'est toi qui envoies.
+  var dictee = {session:null, base:""};
+  function direMicro(msg){
+    var p = el("dit-micro");
+    if(!p) return;
+    p.textContent = msg || "";
+    clearTimeout(direMicro.t);
+    if(msg) direMicro.t = setTimeout(function(){ if(el("dit-micro")) el("dit-micro").textContent = ""; }, 5000);
+  }
+  function boutonDictee(ecoute){
+    var b = el("bt-dicter");
+    if(!b) return;
+    b.textContent = ecoute ? "J'écoute…" : "Parler";
+    b.setAttribute("aria-pressed", ecoute ? "true" : "false");
+  }
+  function arreterDictee(){
+    if(dictee.session){ dictee.session.arreter(); dictee.session = null; }
+    boutonDictee(false);
+  }
+  function basculerDictee(){
+    var ta = el("ma-reponse");
+    if(!ta || !window.Discussion) return;
+    if(dictee.session){ arreterDictee(); return; }
+    window.Discussion.voix.taire();          // on ne s'écoute pas parler en même temps
+    dictee.base = ta.value.trim();
+    boutonDictee(true);
+    direMicro("");
+    dictee.session = window.Discussion.micro.ecouter({
+      surTexte: function(acquis, partiel){
+        ta.value = [dictee.base, acquis, partiel].filter(Boolean).join(" ");
+      },
+      surFin: function(){
+        dictee.session = null;
+        boutonDictee(false);
+      },
+      surErreur: function(m){ direMicro(m); }
+    });
+    if(!dictee.session){ boutonDictee(false); direMicro("La dictée n'a pas démarré sur cet appareil."); }
   }
   function majEnvoi(actif){
     var b = el("bt-envoyer");
@@ -561,10 +603,16 @@
     h += '<p class="role-resume" id="role-resume">' + esc(window.Discussion.role(d.role).resume) + '</p>';
     h += '<div class="fil" id="fil"></div>';
     h += '<div class="repondre">' +
-         '<textarea id="ma-reponse" rows="2" placeholder="Réponds-lui — ou dicte, le micro du clavier fait le reste."></textarea>' +
+         '<textarea id="ma-reponse" rows="2" placeholder="Réponds-lui — au clavier, ou en parlant."></textarea>' +
+         (window.Discussion.micro.possible()
+           ? '<button class="bt" id="bt-dicter" data-act="dicter" aria-pressed="false">Parler</button>' : "") +
          '<button class="bt bt-plein" id="bt-envoyer" data-act="envoyer">Envoyer</button>' +
          '</div>';
+    h += '<p class="dit-micro" id="dit-micro"></p>';
     h += '<div class="outils">' +
+         (window.Discussion.voix.possible()
+           ? '<button class="bt" data-act="voix" aria-pressed="' +
+             (window.Discussion.voix.active() ? "true" : "false") + '">Qu\'il parle</button>' : "") +
          '<button class="bt bt-discret" data-act="causerie-vider">Recommencer</button>' +
          '<button class="bt bt-discret" data-act="causerie-garder">Garder ce que j\'ai dit</button>' +
          '</div>';
@@ -590,6 +638,8 @@
 
   function faireParler(id, monTexte){
     if(causerie.enCours || !window.Discussion) return;
+    window.Discussion.voix.taire();
+    arreterDictee();
     var d = laDiscussion(id);
     if(monTexte){ d.echanges.push({r:"u", t:monTexte}); poserDiscussion(id, d); }
     rendreFil(id);
@@ -618,6 +668,7 @@
         if(n.echanges.length > 60) n.echanges = n.echanges.slice(-60);
         poserDiscussion(id, n);
         rendreFil(id);
+        if(window.Discussion.voix.active()) window.Discussion.voix.dire(t);
       },
       surErreur: function(m){
         causerie.enCours = null; majEnvoi(false);
@@ -708,6 +759,16 @@
     var act = b.dataset.act, id = b.dataset.id;
 
     if(act === "causerie-ouvrir"){ faireParler(causerie.sujetId, ""); return; }
+    if(act === "dicter"){ basculerDictee(); return; }
+    if(act === "voix"){
+      var allume = !window.Discussion.voix.active();
+      window.Discussion.voix.poser(allume);
+      b.setAttribute("aria-pressed", allume ? "true" : "false");
+      // Sur iPhone, le moteur de parole ne se débloque qu'au premier geste : on en profite.
+      if(allume) window.Discussion.voix.dire("Je t'écoute.");
+      else window.Discussion.voix.taire();
+      return;
+    }
     if(act === "envoyer"){
       if(causerie.enCours){ arreterCauserie(); return; }
       var ta = el("ma-reponse"), dit = ta ? ta.value.trim() : "";

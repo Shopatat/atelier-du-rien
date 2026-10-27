@@ -15,6 +15,10 @@
   La clé est dans `localStorage` sous `atelier-du-rien.cle`, à part des fiches : elle n'entre jamais
   dans l'export, et ne doit jamais être écrite dans un fichier du dépôt. Le modèle est sous
   `atelier-du-rien.modele`. Quatre rôles, un fil par sujet, l'IA ne donne jamais la réponse à sa place.
+- Voix : `speechSynthesis` pour la lecture (préférence sous `atelier-du-rien.voix`, voix française locale de
+  préférence) et `webkitSpeechRecognition` pour la dictée. Tout passe par le moteur de l'appareil, rien par
+  l'appli. Sur iPhone le moteur de parole ne se débloque qu'après un geste : le bouton « Qu'il parle » dit
+  une phrase courte en s'allumant, c'est volontaire.
 - `js/sujets.js` est la banque livrée (70 fiches, 12 thèmes). L'appli y puise au premier lancement et quand on
   touche « Compléter avec les sujets livrés ». Chaque fiche a exactement trois `temps`.
 - À chaque changement de fichier, incrémenter `VERSION` dans `sw.js` et garder la liste `FILES` à jour.

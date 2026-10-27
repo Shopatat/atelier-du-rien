@@ -30,6 +30,8 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   Quatre voix au choix — l'intervieweur qui creuse, le chercheur qui cite les maîtres, le sceptique que rien
   n'impressionne, celui qui en bave et ne veut pas de théorie. Il ne donne jamais la réponse à ta place : c'est en
   lui répondant que tu la trouves. « Garder ce que j'ai dit » verse tes réponses dans les notes de la fiche.
+  Pour que ça se passe vraiment à voix haute : **Parler** dicte ta réponse au lieu de la taper, **Qu'il parle**
+  fait lire la sienne par le téléphone. Les deux passent par le moteur de parole de l'appareil, pas par l'appli.
   Il faut une clé Anthropic ([console.anthropic.com](https://console.anthropic.com/settings/keys)), collée en bas de
   la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
   C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.
