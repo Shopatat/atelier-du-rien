@@ -1,0 +1,4 @@
+# Fins de ligne LF partout, comme sur le disque
+* text=auto eol=lf
+*.png binary
+*.woff2 binary

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E9EBE7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101413" media="(prefers-color-scheme: dark)">
+<title>L'atelier du rien</title>
+<meta name="description" content="Table de travail pour les vidéos : un sujet tiré chaque jour, déjà cadré, et le rythme de publication sous les yeux.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Atelier du rien">
+<meta name="format-detection" content="telephone=no">
+<link rel="preload" href="fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="enveloppe">
+
+  <header class="chapeau">
+    <svg class="marque" viewBox="0 0 40 40" aria-hidden="true" fill="none">
+      <path d="M31 11.5C27.8 6.6 22.4 4 17 5.2 9.6 6.9 4.8 14.3 6.2 22.1c1.4 7.6 8.4 12.9 15.8 12 6.6-.8 11.7-6.2 12.4-13"
+            stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <div class="chapeau-nom">L'atelier du rien<small>table de travail</small></div>
+    <div class="chapeau-stats" id="stats"></div>
+  </header>
+
+  <section aria-labelledby="t-jour">
+    <div class="bloc-titre">
+      <h2 id="t-jour">Le sujet du jour</h2>
+      <span class="appoint" id="date-jour"></span>
+    </div>
+    <div id="zone-jour"></div>
+  </section>
+
+  <section aria-labelledby="t-rythme">
+    <div class="bloc-titre">
+      <h2 id="t-rythme">Le rythme</h2>
+      <span class="appoint">dix dernières semaines</span>
+    </div>
+    <div class="feuille rythme" id="zone-rythme"></div>
+  </section>
+
+  <section aria-labelledby="t-banque">
+    <div class="bloc-titre">
+      <h2 id="t-banque">La banque</h2>
+      <span class="appoint" id="compte-banque"></span>
+    </div>
+
+    <div class="capture">
+      <input type="text" id="capture" placeholder="Une idée en passant — un titre suffit" autocomplete="off">
+      <button class="bt" id="bt-capture">Déposer</button>
+      <button class="bt bt-discret" id="bt-nouveau">Fiche complète</button>
+    </div>
+
+    <div class="filtres" id="filtres">
+      <button class="onglet" data-etat="tous" aria-pressed="true">Tous</button>
+      <button class="onglet" data-etat="idee" aria-pressed="false">Idées</button>
+      <button class="onglet" data-etat="choisi" aria-pressed="false">À tourner</button>
+      <button class="onglet" data-etat="tourne" aria-pressed="false">Tournés</button>
+      <button class="onglet" data-etat="publie" aria-pressed="false">Publiés</button>
+      <select id="filtre-tag" aria-label="Filtrer par thème"><option value="">Tous les thèmes</option></select>
+      <input type="text" id="recherche" placeholder="Chercher" autocomplete="off">
+    </div>
+
+    <div class="feuille"><ul class="liste" id="liste"></ul></div>
+    <div id="zone-form"></div>
+  </section>
+
+  <section aria-labelledby="t-donnees">
+    <div class="bloc-titre">
+      <h2 id="t-donnees">Tes données</h2>
+      <span class="appoint">sur cet appareil</span>
+    </div>
+    <div class="feuille donnees">
+      <p>Tout reste dans le navigateur de cet appareil : rien n'est envoyé nulle part. Exporte avant de changer de téléphone, ou pour passer tes fiches d'un appareil à l'autre.</p>
+      <div class="outils">
+        <button class="bt" id="bt-export">Exporter</button>
+        <button class="bt" id="bt-import">Importer</button>
+        <button class="bt bt-discret" id="bt-completer">Compléter avec les sujets livrés</button>
+        <input type="file" id="fichier-import" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </section>
+
+  <p class="pied" id="pied">partir de rien · tenir le fil</p>
+</div>
+
+<div class="plateau" id="plateau" hidden>
+  <div class="plateau-barre">
+    <button class="bt" id="plateau-fermer">Fermer</button>
+    <span class="chrono" id="chrono">00:00</span>
+    <button class="bt bt-discret" id="chrono-bt">Lancer</button>
+  </div>
+  <div class="plateau-corps" id="plateau-corps"></div>
+</div>
+
+<script src="js/sujets.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

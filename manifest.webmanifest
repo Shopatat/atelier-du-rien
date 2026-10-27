@@ -1,0 +1,17 @@
+{
+  "name": "L'atelier du rien",
+  "short_name": "Atelier",
+  "description": "Table de travail pour les vidéos : un sujet tiré chaque jour, déjà cadré, et le rythme de publication sous les yeux.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E9EBE7",
+  "theme_color": "#E9EBE7",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
