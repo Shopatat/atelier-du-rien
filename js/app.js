@@ -728,26 +728,43 @@
   // Des sommes minuscules : trois décimales tant qu'on est sous dix centimes.
   function sous(n){
     n = Number(n) || 0;
-    return n.toFixed(n > 0 && n < 0.1 ? 3 : 2).replace(".", ",") + " $";
+    return n.toFixed(n > 0 && n < 0.01 ? 3 : 2).replace(".", ",") + " $";
   }
+  // Ce qui reste en grand, le dépensé en petit : un compte qui descend se lit d'un coup d'œil,
+  // alors qu'une somme dépensée oblige à se rappeler de combien on est parti.
   function rendreDepense(){
     if(!window.Discussion) return;
     var d = window.Discussion.depense.lire(), paye = window.Discussion.depense.dollars();
     var champ = el("credit");
     if(champ && document.activeElement !== champ) champ.value = d.credit ? String(d.credit) : "";
-    var p = el("depense-etat");
-    if(!p) return;
-    if(!d.tours){
-      p.textContent = "Rien de dépensé depuis cet appareil pour l'instant.";
-      p.className = "cle-etat cle-ok";
+    var zone = el("depense-etat");
+    if(!zone) return;
+
+    var tours = d.tours
+      ? d.tours + " réponse" + (d.tours > 1 ? "s" : "") + " depuis le " + dateCourte(d.debut) +
+        ", environ " + sous(paye) + " dépensés"
+      : "";
+
+    // Sans crédit déclaré, il n'y a rien à soustraire : on ne peut montrer que le dépensé.
+    if(!d.credit){
+      zone.className = "solde";
+      zone.innerHTML = '<p class="solde-note">' +
+        esc(tours ? tours + ". " : "Rien de dépensé depuis cet appareil pour l'instant. ") +
+        "Dis-lui ce que tu as chargé, juste au-dessus, et il affichera ce qu'il en reste.</p>";
       return;
     }
-    var reste = d.credit - paye;
-    var txt = d.tours + " réponse" + (d.tours > 1 ? "s" : "") + " depuis le " + dateCourte(d.debut) +
-              ", environ " + sous(paye) + " dépensés";
-    if(d.credit) txt += " — il resterait " + sous(Math.max(0, reste)) + " sur les " + sous(d.credit) + " chargés";
-    p.textContent = txt + ".";
-    p.className = "cle-etat" + (d.credit && reste <= 0 ? "" : " cle-ok");
+
+    var reste = Math.max(0, d.credit - paye);
+    var part = Math.max(0, Math.min(100, reste / d.credit * 100));
+    zone.className = "solde" + (reste <= 0 ? " vide" : (part <= 20 ? " bas" : ""));
+    zone.innerHTML =
+      '<div class="solde-reste"><span class="solde-chiffre">' + esc(sous(reste)) + '</span>' +
+      '<span class="solde-mot">' + (reste <= 0 ? "plus rien" : "il te reste") + '</span></div>' +
+      '<div class="solde-barre"><span style="width:' + part.toFixed(1) + '%"></span></div>' +
+      '<p class="solde-note">' + esc(tours
+        ? tours + ", sur les " + sous(d.credit) + " chargés."
+        : "Rien de dépensé depuis cet appareil pour l'instant : tu partiras de " + sous(d.credit) + ".") +
+      '</p>';
   }
   function rendreModele(){
     if(!window.Discussion) return;

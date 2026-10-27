@@ -19,7 +19,9 @@
   aux comptes individuels et ne donne que le dépensé). L'appli compte donc elle-même, à partir du
   `usage` de chaque réponse, sous `atelier-du-rien.depense`. Les tarifs sont dans `MODELES[].tarif`
   (dollars par million de jetons, relevés sur platform.claude.com le 27/10/2026) : à revérifier avant
-  de les croire, et à mettre à jour si Anthropic bouge ses prix.
+  de les croire, et à mettre à jour si Anthropic bouge ses prix. L'affichage montre le **reste** en
+  grand (`.solde`), pas le dépensé : Fabien veut un compte qui descend, lisible sans se rappeler de
+  combien il est parti. Sans crédit déclaré, pas de reste possible : on retombe sur le dépensé seul.
 - Réflexion : le modèle vif part avec `thinking:{type:"between_tools"}` + `effort:"low"` — pour trois
   phrases, réfléchir avant de parler coûte du temps et des jetons, et avec une limite serrée ça rendait
   des réponses vides. Le profond garde sa réflexion (`effort:"medium"`, on ne peut pas la couper sur

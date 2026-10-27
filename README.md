@@ -36,8 +36,10 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
   C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.
   Anthropic ne publie pas de solde lisible depuis une appli, alors l'atelier compte lui-même : chaque réponse
-  déclare ses jetons, et le total est converti au tarif du modèle. Dis-lui ce que tu as chargé, il te dira ce
-  qu'il en reste. Le chiffre qui fait foi reste celui de la page Cost de la console.
+  déclare ses jetons, et le total est converti au tarif du modèle. Dis-lui ce que tu as chargé, et c'est **ce
+  qu'il en reste** qui s'affiche en grand, avec une barre qui descend vers zéro — un compte à rebours se lit
+  sans avoir à se rappeler de combien on est parti. Elle passe à l'ambre sous le cinquième du crédit, au rouge
+  à zéro. Le chiffre qui fait foi reste celui de la page Cost de la console.
 - **Le rythme** : les dix dernières semaines en grille, la série de jours en cours, le record, le compte du mois,
   et la semaine en cours face à la cadence visée (5/semaine par défaut).
 - **La banque** : 70 sujets livrés sur 12 thèmes — éveil, pièges, mental, méditation, non-dualité, corps, émotions,

@@ -118,19 +118,20 @@
         <span class="appoint" id="modele-note"></span>
       </div>
 
-      <p>Anthropic ne publie pas de solde à lire depuis une appli. L'atelier compte donc lui-même :
-         chaque réponse déclare ses jetons, et le total est converti au tarif du modèle. Dis-lui ce
-         que tu as chargé, il te dira ce qu'il en reste. Le chiffre qui fait foi est celui de la
+      <p>Dis-lui ce que tu as chargé et il t'affiche ce qu'il en reste, qui descend à chaque réponse.
+         Anthropic ne publie pas de solde à lire depuis une appli : l'atelier compte donc lui-même,
+         à partir des jetons que chaque réponse déclare, convertis au tarif du modèle. C'est une
+         estimation ; le chiffre qui fait foi reste celui de la
          page <a href="https://platform.claude.com/cost" target="_blank" rel="noopener noreferrer">Cost</a>
          de la console.</p>
       <div class="cle-ligne">
-        <label class="etiquette" for="credit">Crédit chargé</label>
+        <label class="etiquette" for="credit">J'ai chargé</label>
         <input type="number" id="credit" min="0" step="1" inputmode="decimal" placeholder="5"
                aria-label="Crédit chargé, en dollars">
         <span class="appoint">dollars</span>
         <button class="bt bt-discret bt-mini" id="bt-depense-zero">Remettre le compteur à zéro</button>
       </div>
-      <p class="cle-etat" id="depense-etat"></p>
+      <div class="solde" id="depense-etat" aria-live="polite"></div>
     </div>
   </section>
 
