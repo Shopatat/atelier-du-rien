@@ -363,13 +363,14 @@
   // Le flux arrive en « server-sent events » : des lignes « data: {…} » séparées par du vide.
   // On rend {texte, pense, arret} : « pense » compte ce qu'il a rédigé en coulisse (bloc
   // « thinking »), « arret » dit pourquoi il s'est tu. Les deux servent quand le texte est vide.
-  function lireFlux(reponse, surTexte){
+  function lireFlux(reponse, surTexte, bat){
     var lect = reponse.body.getReader(), dec = new TextDecoder();
     var reste = "", texte = "", pense = 0, arret = "", souci = null;
     var usage = {entree:0, sortie:0};
     return (function suite(){
       return lect.read().then(function(p){
         if(p.done) return {texte:texte, pense:pense, arret:arret, usage:usage};
+        if(bat) bat();   // le flux vit, même s’il réfléchit encore : on repousse le garde-fou
         reste += dec.decode(p.value, {stream:true});
         var lignes = reste.split("\n");
         reste = lignes.pop();
@@ -459,6 +460,7 @@
     // Si l'API refuse le réglage de réflexion (il change d'un modèle à l'autre),
     // on repart une fois sans lui plutôt que de laisser tomber la discussion.
     function tenter(avecReglage){
+      veiller();   // chaque tentative repart avec sa montre entière
       return fetch(URL_API, {
         method:"POST",
         headers:{
@@ -474,7 +476,7 @@
           if(r.status === 400 && avecReglage && /thinking|effort|output_config/i.test(t)) return tenter(false);
           throw new Error(texteErreur(r.status, t));
         });
-        if(flux && r.body && r.body.getReader) return lireFlux(r, avance);
+        if(flux && r.body && r.body.getReader) return lireFlux(r, avance, veiller);
         return r.json().then(function(d){
           var blocs = d.content || [];
           var t = blocs.map(function(b){ return (b && b.type === "text" && b.text) || ""; }).join("");

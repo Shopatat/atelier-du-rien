@@ -17,7 +17,9 @@
   `atelier-du-rien.modele`. Quatre rôles, un fil par sujet, l'IA ne donne jamais la réponse à sa place.
   Une demande qui ne revient jamais (l'iPhone suspend les requêtes dès que l'appli passe en arrière-plan)
   laissait le champ de réponse bloqué sur « Arrêter » : `parler()` garde donc une montre (`ATTENTE_MAX`,
-  repoussée à chaque morceau reçu) et rend la main par `surErreur`. Côté `app.js`, le témoin rendu par
+  repoussée à chaque morceau du flux, pas seulement à chaque mot : le modèle profond peut
+  réfléchir une minute sans rien dire, et couper là serait couper une réponse valide) et rend
+  la main par `surErreur`. Côté `app.js`, le témoin rendu par
   `parler()` n'est posé que si la demande est encore en vol (`enVol`) : un `surErreur` synchrone — pas de
   clé — écrasait sinon le `null` qu'il venait de poser, et plus rien ne s'envoyait jusqu'à la fermeture
   du plateau.
