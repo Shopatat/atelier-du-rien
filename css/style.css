@@ -162,7 +162,7 @@ input::placeholder,textarea::placeholder{color:var(--encre-faible)}
   padding:clamp(1.5rem,6vw,3.25rem) clamp(1.15rem,4vw,2rem);
   display:flex;flex-direction:column;align-items:center;gap:1.1rem;text-align:center;
 }
-.cercle-grand{width:72px;height:72px;color:var(--trait)}
+.cadre-grand{width:72px;height:72px;color:var(--trait)}
 .tirage p{max-width:40ch;color:var(--encre-douce);font-size:.95rem}
 .tirage h2{font-family:var(--police-titre);font-size:clamp(1.3rem,4.5vw,1.8rem);font-style:normal;color:var(--encre)}
 

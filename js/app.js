@@ -272,15 +272,18 @@
       '</div>';
   }
 
-  var CERCLE = '<svg class="cercle-grand" viewBox="0 0 40 40" aria-hidden="true" fill="none">' +
-    '<path d="M31 11.5C27.8 6.6 22.4 4 17 5.2 9.6 6.9 4.8 14.3 6.2 22.1c1.4 7.6 8.4 12.9 15.8 12 6.6-.8 11.7-6.2 12.4-13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
+  // Le cadre de l'appareil, en grand : quatre coins et rien à cadrer.
+  var CADRE = '<svg class="cadre-grand" viewBox="0 0 40 40" aria-hidden="true" fill="none"' +
+    ' stroke="currentColor" stroke-width="2.4" stroke-linecap="square" stroke-linejoin="miter">' +
+    '<path d="M9 15.6V9h6.6"/><path d="M24.4 9H31v6.6"/>' +
+    '<path d="M31 24.4V31h-6.6"/><path d="M15.6 31H9v-6.6"/></svg>';
 
   function rendreJour(){
     var zone = el("zone-jour");
     el("date-jour").textContent = dateLongue(new Date());
 
     if(!Object.keys(sujets).length){
-      zone.innerHTML = '<div class="feuille tirage">' + CERCLE +
+      zone.innerHTML = '<div class="feuille tirage">' + CADRE +
         '<h2>La banque est vide</h2>' +
         '<p>Dépose un premier sujet plus bas : un titre suffit pour commencer, la fiche se complète ensuite. ' +
         'Tu peux aussi remettre les sujets livrés avec l\'appli depuis « Tes données ».</p></div>';
@@ -292,7 +295,7 @@
 
     if(!s || !dejaTire){
       var dispo = liste(sujets).filter(function(x){ return x.etat === "idee"; }).length;
-      zone.innerHTML = '<div class="feuille tirage">' + CERCLE +
+      zone.innerHTML = '<div class="feuille tirage">' + CADRE +
         '<h2>Rien de tiré aujourd\'hui</h2>' +
         '<p>' + (dispo
           ? esc(dispo) + ' sujet' + (dispo>1?'s':'') + ' attendent dans la banque. Un clic et tu as une croyance à retourner, une accroche à dire, trois temps à tenir.'

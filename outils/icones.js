@@ -1,4 +1,4 @@
-// Dessine les icônes de l'appli (le cercle ouvert — un zéro tracé à la main)
+// Dessine les icônes de l'appli (le cadre de l'appareil : quatre coins, et rien à cadrer)
 // et les range dans icons/. Lancer depuis la racine du dossier : node outils/icones.js
 // Aucun module à installer : le PNG est encodé à la main avec zlib.
 const fs = require('fs'), zlib = require('zlib'), path = require('path');
@@ -6,29 +6,29 @@ const fs = require('fs'), zlib = require('zlib'), path = require('path');
 const hex = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
 const PAPIER = hex('#E9EBE7'), ENCRE = hex('#141917');
 
-// Repère : 0..1, y vers le bas. Le trait s'ouvre sur la droite, entre 1 h et 3 h.
-const CX = 0.5, CY = 0.5, R = 0.305, DEMI = 0.036;
-const deg = Math.PI / 180;
-const OUVERT = [52 * deg, 95 * deg];          // le vide, en angles horaires depuis le haut
-const bout = a => [CX + R * Math.sin(a), CY - R * Math.cos(a)];
-const A = bout(OUVERT[0]), B = bout(OUVERT[1]);
+// Repère : 0..1, y vers le bas. Le cadre tient dans un carré de côté M - m,
+// et chaque coin n'en garde que deux bras de longueur BRAS. Le milieu reste vide.
+const DEMI = 0.030;          // demi-épaisseur du trait
+const BRAS = 0.165;          // longueur d'un bras, depuis le coin
+const m = 0.225, M = 1 - m;  // les deux bords du cadre
 
-// Rayon qui respire très légèrement : le trait n'est pas un compas.
-const rayon = a => R * (1 + 0.013 * Math.sin(3 * a + 0.8));
-
-// Distance au trait : à l'écart du vide, c'est l'écart au cercle ;
-// dans le vide, c'est la distance au bout le plus proche (ce qui arrondit les caps).
-function distTrait(x, y){
-  const dx = x - CX, dy = y - CY;
-  const d = Math.hypot(dx, dy);
-  let a = Math.atan2(dx, -dy);
-  if(a < 0) a += 2 * Math.PI;
-  if(a < OUVERT[0] || a > OUVERT[1]) return Math.abs(d - rayon(a));
-  return Math.min(Math.hypot(x - A[0], y - A[1]), Math.hypot(x - B[0], y - B[1]));
-}
+// Les huit bras : deux par coin, un horizontal, un vertical. Chacun est un rectangle
+// débordant de DEMI à chaque bout — c'est ce qui remplit le coin et donne des bouts nets
+// (en SVG : stroke-linecap="square" + stroke-linejoin="miter").
+const BRAS_LISTE = [];
+for(const [cx, sx] of [[m, 1], [M, -1]])
+  for(const [cy, sy] of [[m, 1], [M, -1]]){
+    BRAS_LISTE.push([cx, cy, cx + sx * BRAS, cy]);
+    BRAS_LISTE.push([cx, cy, cx, cy + sy * BRAS]);
+  }
 
 function couleur(x, y){
-  return distTrait(x, y) <= DEMI ? ENCRE : PAPIER;
+  for(const [ax, ay, bx, by] of BRAS_LISTE){
+    const x0 = Math.min(ax, bx) - DEMI, x1 = Math.max(ax, bx) + DEMI;
+    const y0 = Math.min(ay, by) - DEMI, y1 = Math.max(ay, by) + DEMI;
+    if(x >= x0 && x <= x1 && y >= y0 && y <= y1) return ENCRE;
+  }
+  return PAPIER;
 }
 
 // Rendu avec lissage : 4×4 sous-pixels. `k` rétrécit le dessin (icône maskable).
