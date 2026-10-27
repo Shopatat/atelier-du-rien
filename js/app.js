@@ -673,7 +673,9 @@
       surErreur: function(m){
         causerie.enCours = null; majEnvoi(false);
         bulle.className = "bulle souci";
-        bulle.textContent = m;
+        // Ta réponse reste dans le fil : « Réessayer » relance sans te la faire réécrire.
+        bulle.innerHTML = esc(m) +
+          ' <button class="bt bt-mini" data-act="causerie-reessayer">Réessayer</button>';
         f.scrollTop = f.scrollHeight;
       }
     });
@@ -758,7 +760,7 @@
     if(!b) return;
     var act = b.dataset.act, id = b.dataset.id;
 
-    if(act === "causerie-ouvrir"){ faireParler(causerie.sujetId, ""); return; }
+    if(act === "causerie-ouvrir" || act === "causerie-reessayer"){ faireParler(causerie.sujetId, ""); return; }
     if(act === "dicter"){ basculerDictee(); return; }
     if(act === "voix"){
       var allume = !window.Discussion.voix.active();

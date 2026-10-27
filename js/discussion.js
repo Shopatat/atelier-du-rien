@@ -227,11 +227,14 @@
   }
 
   // Le flux arrive en « server-sent events » : des lignes « data: {…} » séparées par du vide.
+  // On rend {texte, pense, arret} : « pense » compte ce qu'il a rédigé en coulisse (bloc
+  // « thinking »), « arret » dit pourquoi il s'est tu. Les deux servent quand le texte est vide.
   function lireFlux(reponse, surTexte){
-    var lect = reponse.body.getReader(), dec = new TextDecoder(), reste = "", texte = "", souci = null;
+    var lect = reponse.body.getReader(), dec = new TextDecoder();
+    var reste = "", texte = "", pense = 0, arret = "", souci = null;
     return (function suite(){
       return lect.read().then(function(p){
-        if(p.done) return texte;
+        if(p.done) return {texte:texte, pense:pense, arret:arret};
         reste += dec.decode(p.value, {stream:true});
         var lignes = reste.split("\n");
         reste = lignes.pop();
@@ -241,9 +244,15 @@
           if(!brut || brut === "[DONE]") return;
           var ev;
           try{ ev = JSON.parse(brut); }catch(e){ return; }
-          if(ev.type === "content_block_delta" && ev.delta && typeof ev.delta.text === "string"){
-            texte += ev.delta.text;
-            surTexte(texte);
+          if(ev.type === "content_block_delta" && ev.delta){
+            if(typeof ev.delta.text === "string"){
+              texte += ev.delta.text;
+              surTexte(texte);
+            } else if(typeof ev.delta.thinking === "string"){
+              pense += ev.delta.thinking.length;
+            }
+          } else if(ev.type === "message_delta" && ev.delta && ev.delta.stop_reason){
+            arret = ev.delta.stop_reason;
           } else if(ev.type === "error"){
             souci = (ev.error && ev.error.message) || "La réponse s'est interrompue.";
           }
@@ -252,6 +261,17 @@
         return suite();
       });
     })();
+  }
+
+  // Quand il n'a rien dit, on dit au moins pourquoi plutôt que « vide ».
+  function pourquoiRien(res){
+    if(res.arret === "max_tokens"){
+      return res.pense
+        ? "Il a tourné en rond dans sa tête et n'a rien dit. Réessaie."
+        : "Sa réponse a été coupée avant le premier mot. Réessaie.";
+    }
+    if(res.arret === "refusal") return "Il a refusé de répondre à ce tour-là. Reformule, ou change d'interlocuteur.";
+    return "Il n'a rien répondu" + (res.arret ? " (" + res.arret + ")" : "") + ". Réessaie.";
   }
 
   /* parler({sujet, roleId, echanges, surTexte, surFin, surErreur}) -> {annuler()} */
@@ -264,7 +284,9 @@
     var ctrl = flux ? new AbortController() : null;
     var corps = {
       model: modele.lire(),
-      max_tokens: 500,
+      // Large exprès : il ne dit que deux ou trois phrases, mais s'il rédige en coulisse
+      // (bloc « thinking »), une limite serrée mange tout le budget et il rend une réponse vide.
+      max_tokens: 1500,
       system: consigne(o.sujet, role(o.roleId)),
       messages: messages(o.echanges)
     };
@@ -284,13 +306,15 @@
       if(!r.ok) return r.text().then(function(t){ throw new Error(texteErreur(r.status, t)); });
       if(flux && r.body && r.body.getReader) return lireFlux(r, o.surTexte);
       return r.json().then(function(d){
-        var t = (d.content || []).map(function(b){ return b.text || ""; }).join("");
+        var blocs = d.content || [];
+        var t = blocs.map(function(b){ return (b && b.type === "text" && b.text) || ""; }).join("");
+        var p = blocs.map(function(b){ return (b && b.thinking) || ""; }).join("").length;
         o.surTexte(t);
-        return t;
+        return {texte:t, pense:p, arret:d.stop_reason || ""};
       });
-    }).then(function(t){
-      t = String(t || "").trim();
-      if(!t) throw new Error("Réponse vide. Réessaie.");
+    }).then(function(res){
+      var t = String((res && res.texte) || "").trim();
+      if(!t) throw new Error(pourquoiRien(res || {}));
       o.surFin(t);
     }).catch(function(e){
       if(e && e.name === "AbortError") return;
