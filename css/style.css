@@ -150,7 +150,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bt-mini{font-size:.76rem;padding:.3rem .55rem}
 
 .notes-zone{display:flex;flex-direction:column;gap:.45rem}
-textarea,input[type=text],input[type=url],select{
+textarea,input[type=text],input[type=url],input[type=password],select{
   font:inherit;font-size:.9rem;color:var(--encre);background:var(--feuille-creuse);
   border:1px solid var(--trait-fin);border-radius:var(--r);padding:.5rem .65rem;width:100%;
 }
@@ -238,6 +238,36 @@ input::placeholder,textarea::placeholder{color:var(--encre-faible)}
 .plateau-corps .accroche{font-size:clamp(1.3rem,4vw,1.85rem);line-height:1.35}
 .plateau-corps .temps li{font-size:clamp(1.05rem,3vw,1.3rem);line-height:1.45;grid-template-columns:2rem 1fr}
 .plateau-corps .sortie{font-size:clamp(1.15rem,3.5vw,1.5rem)}
+
+/* ---------- l'interlocuteur ---------- */
+.cle-ligne{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.cle-ligne input{flex:1 1 16rem;min-width:0;font-family:var(--police-util);font-size:.8rem}
+.cle-ligne select{width:auto}
+.cle-ligne .appoint{font-family:var(--police-util);font-size:.68rem;letter-spacing:.04em;color:var(--encre-faible)}
+.cle-etat{font-family:var(--police-util);font-size:.7rem;letter-spacing:.04em;color:var(--danger)}
+.cle-etat.cle-ok{color:var(--encre-faible)}
+
+.discute{display:flex;flex-direction:column;gap:.75rem;padding-top:1.25rem;border-top:1px solid var(--trait-fin)}
+.roles{display:flex;gap:.4rem;flex-wrap:wrap}
+.role-resume{font-size:.88rem;color:var(--encre-douce);max-width:52ch}
+
+.fil{
+  display:flex;flex-direction:column;gap:.65rem;
+  max-height:min(52vh,26rem);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:.2rem .1rem;
+}
+.fil-vide{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;color:var(--encre-faible);font-style:italic;font-size:.92rem}
+.bulle{max-width:88%;padding:.6rem .8rem;border-radius:var(--r);line-height:1.5}
+.plateau-corps .bulle{font-size:.98rem}
+.bulle.lui{align-self:flex-start;background:var(--feuille);border:1px solid var(--trait-fin)}
+.bulle.moi{align-self:flex-end;background:var(--accent);border:1px solid var(--accent);color:var(--accent-sur)}
+.bulle.en-cours{color:var(--encre-douce)}
+.bulle.souci{align-self:flex-start;background:transparent;border:1px solid var(--danger);color:var(--danger);font-size:.9rem}
+.bascule{align-self:center;font-family:var(--police-util);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--encre-faible)}
+
+.repondre{display:flex;gap:.5rem;align-items:flex-end}
+.repondre textarea{flex:1 1 auto;min-height:3.2rem}
+.repondre .bt{flex:0 0 auto}
 
 .pied{font-family:var(--police-util);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--encre-faible);text-align:center}
 [hidden]{display:none!important}

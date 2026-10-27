@@ -1,9 +1,9 @@
 // Service worker : garde l'appli en cache pour qu'elle marche hors ligne.
 // Pense à changer VERSION à chaque mise à jour, sinon les téléphones gardent l'ancienne version.
-const VERSION = "atelier-du-rien-v2";
+const VERSION = "atelier-du-rien-v3";
 const FILES = [
   "./", "./index.html", "./manifest.webmanifest", "./css/style.css",
-  "./js/app.js", "./js/sujets.js",
+  "./js/app.js", "./js/sujets.js", "./js/discussion.js",
   "./fonts/fraunces-latin.woff2", "./fonts/bricolage-latin.woff2",
   "./fonts/spacemono-400-latin.woff2", "./fonts/spacemono-700-latin.woff2",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",

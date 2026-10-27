@@ -26,6 +26,13 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
 - **La fiche de tournage** : ce qu'on croit, ce qu'on ne dit pas, l'accroche (les dix premières secondes,
   à dire telles quelles), trois temps, la sortie. Plus un champ de notes et un lien vers la vidéo publiée.
 - **Le mode tournage** : plein écran, gros texte, chrono. L'accroche et les trois temps sous les yeux pendant qu'on filme.
+- **L'interlocuteur** : dans le mode tournage, quelqu'un en face pour répéter à voix haute. Tu réponds, il relance.
+  Quatre voix au choix — l'intervieweur qui creuse, le chercheur qui cite les maîtres, le sceptique que rien
+  n'impressionne, celui qui en bave et ne veut pas de théorie. Il ne donne jamais la réponse à ta place : c'est en
+  lui répondant que tu la trouves. « Garder ce que j'ai dit » verse tes réponses dans les notes de la fiche.
+  Il faut une clé Anthropic ([console.anthropic.com](https://console.anthropic.com/settings/keys)), collée en bas de
+  la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
+  C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.
 - **Le rythme** : les dix dernières semaines en grille, la série de jours en cours, le record, le compte du mois,
   et la semaine en cours face à la cadence visée (5/semaine par défaut).
 - **La banque** : 70 sujets livrés sur 12 thèmes — éveil, pièges, mental, méditation, non-dualité, corps, émotions,
@@ -41,6 +48,7 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
 | --- | --- |
 | `index.html` | La page et la structure de l'interface |
 | `css/style.css` | Tout le style (feuilles, fiche, grille du rythme, mode tournage) |
+| `js/discussion.js` | L'interlocuteur : les quatre rôles, la consigne, l'appel à l'API d'Anthropic |
 | `js/app.js` | Toute la logique : tirage, états, séries, banque, export/import |
 | `js/sujets.js` | La banque de sujets livrée avec l'appli (70 fiches) |
 | `sw.js` | Le cache hors ligne (changer `VERSION` à chaque mise à jour) |

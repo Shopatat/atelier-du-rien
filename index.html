@@ -91,6 +91,35 @@
     </div>
   </section>
 
+  <section aria-labelledby="t-inter">
+    <div class="bloc-titre">
+      <h2 id="t-inter">L'interlocuteur</h2>
+      <span class="appoint">pour répéter à voix haute</span>
+    </div>
+    <div class="feuille donnees">
+      <p>Dans le mode tournage, tu peux discuter du sujet avec quelqu'un en face : tu réponds, il relance.
+         Il ne donne jamais la réponse à ta place — c'est en lui répondant que tu la trouves.</p>
+      <p>Il lui faut une clé Anthropic, à prendre sur
+         <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>.
+         Elle reste dans ce navigateur, sur cet appareil : elle ne part qu'à l'API d'Anthropic, elle n'entre pas
+         dans l'export, elle n'est jamais dans le dépôt. Elle est lisible par qui tient le téléphone déverrouillé —
+         ne la mets pas sur un appareil partagé.</p>
+      <div class="cle-ligne">
+        <input type="password" id="cle-api" placeholder="sk-ant-…" aria-label="Clé Anthropic"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="bt" id="bt-cle">Enregistrer</button>
+        <button class="bt bt-discret" id="bt-cle-voir" aria-pressed="false">Voir</button>
+        <button class="bt bt-danger bt-mini" id="bt-cle-oublier">Oublier</button>
+      </div>
+      <p class="cle-etat" id="cle-etat"></p>
+      <div class="cle-ligne">
+        <label class="etiquette" for="modele">Qui répond</label>
+        <select id="modele"></select>
+        <span class="appoint" id="modele-note"></span>
+      </div>
+    </div>
+  </section>
+
   <p class="pied" id="pied">partir de rien · tenir le fil</p>
 </div>
 
@@ -104,6 +133,7 @@
 </div>
 
 <script src="js/sujets.js"></script>
+<script src="js/discussion.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

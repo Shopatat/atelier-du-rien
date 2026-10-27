@@ -18,6 +18,7 @@
 
   var sujets = {};          // id -> fiche
   var journal = {};         // "AAAA-MM-JJ" -> {sujetId, titre}
+  var discussions = {};     // id -> {role, echanges:[{r:"u"|"a"|"x", t}]}
   var reglages = {cadence:5, tirage:null};
   var vue = {etat:"tous", tag:"", q:"", ouvert:null, form:null, suppr:null};
   var rendusEnAttente = false;
@@ -91,6 +92,7 @@
         var d = JSON.parse(brut);
         sujets = (d && typeof d.sujets === "object" && d.sujets) || {};
         journal = (d && typeof d.journal === "object" && d.journal) || {};
+        discussions = (d && typeof d.discussions === "object" && d.discussions) || {};
         reglages.cadence = Number(d && d.reglages && d.reglages.cadence) || 5;
         reglages.tirage = (d && d.reglages && d.reglages.tirage) || null;
         return;
@@ -98,6 +100,7 @@
     }
     sujets = banqueLivree();
     journal = {};
+    discussions = {};
     reglages = {cadence:5, tirage:null};
     sauver();
   }
@@ -105,7 +108,7 @@
     if(!stockageOk) return;
     try{
       window.localStorage.setItem(CLE_STOCK, JSON.stringify({
-        version:1, sujets:sujets, journal:journal, reglages:reglages
+        version:2, sujets:sujets, journal:journal, discussions:discussions, reglages:reglages
       }));
     }catch(e){
       stockageOk = false;
@@ -121,6 +124,7 @@
   }
   function supprimerSujet(id){
     delete sujets[id];
+    delete discussions[id];
     if(reglages.tirage && reglages.tirage.sujetId === id) reglages.tirage = null;
     sauver();
     rendreTout();
@@ -496,16 +500,185 @@
       (s.accroche ? champ("Accroche", '<p class="accroche">' + esc(s.accroche) + '</p>') : "") +
       (t.length ? champ("Trois temps", '<ol class="temps">' + t.map(function(x){ return "<li><span>" + esc(x) + "</span></li>"; }).join("") + "</ol>") : "") +
       (s.sortie ? champ("La sortie", '<p class="sortie">' + esc(s.sortie) + '</p>') : "") +
-      (s.croyance ? champ("Ce qu'on croit", '<p class="croyance">' + esc(s.croyance) + '</p>') : "");
+      (s.croyance ? champ("Ce qu'on croit", '<p class="croyance">' + esc(s.croyance) + '</p>') : "") +
+      blocDiscussion(id);
+    causerie.sujetId = id;
+    rendreFil(id);
     el("plateau").hidden = false;
     el("plateau-fermer").focus();
   }
   function fermerPlateau(){
+    arreterCauserie();
+    causerie.sujetId = null;
     el("plateau").hidden = true;
     chrono.actif = false; chrono.fige = 0;
     clearInterval(chrono.timer); chrono.timer = null;
     el("chrono").textContent = "00:00";
     el("chrono-bt").textContent = "Lancer";
+  }
+
+  /* ---------- l'interlocuteur ---------- */
+  // Un fil par sujet : il relance, tu réponds. La logique de l'API est dans js/discussion.js.
+  var causerie = {sujetId:null, enCours:null};
+  var ROLE_PAR_DEFAUT = "intervieweur";
+
+  function laDiscussion(id){
+    var d = discussions[id];
+    if(!d || typeof d !== "object") d = {};
+    if(!Array.isArray(d.echanges)) d.echanges = [];
+    if(!d.role) d.role = ROLE_PAR_DEFAUT;
+    return d;
+  }
+  function poserDiscussion(id, d){
+    if(d.echanges.length || d.role !== ROLE_PAR_DEFAUT) discussions[id] = d;
+    else delete discussions[id];
+    sauver();
+  }
+  function arreterCauserie(){
+    if(causerie.enCours){ causerie.enCours.annuler(); causerie.enCours = null; }
+    majEnvoi(false);
+  }
+  function majEnvoi(actif){
+    var b = el("bt-envoyer");
+    if(b) b.textContent = actif ? "Arrêter" : "Envoyer";
+    var t = el("ma-reponse");
+    if(t) t.disabled = actif;
+  }
+
+  function blocDiscussion(id){
+    if(!window.Discussion) return "";
+    var d = laDiscussion(id);
+    var h = '<div class="discute"><span class="etiquette">Répéter à voix haute</span>';
+    if(!window.Discussion.cle.presente()){
+      h += '<p class="vide-champ">Personne en face pour l\'instant : il faut une clé Anthropic. ' +
+           'Ferme le plateau et colle-la en bas de la page, dans « L\'interlocuteur ».</p>';
+      return h + "</div>";
+    }
+    h += '<div class="roles" id="roles">' + window.Discussion.ROLES.map(function(r){
+      return '<button class="onglet" data-role="' + esc(r.id) + '" aria-pressed="' +
+             (r.id === d.role ? "true" : "false") + '">' + esc(r.nom) + '</button>';
+    }).join("") + '</div>';
+    h += '<p class="role-resume" id="role-resume">' + esc(window.Discussion.role(d.role).resume) + '</p>';
+    h += '<div class="fil" id="fil"></div>';
+    h += '<div class="repondre">' +
+         '<textarea id="ma-reponse" rows="2" placeholder="Réponds-lui — ou dicte, le micro du clavier fait le reste."></textarea>' +
+         '<button class="bt bt-plein" id="bt-envoyer" data-act="envoyer">Envoyer</button>' +
+         '</div>';
+    h += '<div class="outils">' +
+         '<button class="bt bt-discret" data-act="causerie-vider">Recommencer</button>' +
+         '<button class="bt bt-discret" data-act="causerie-garder">Garder ce que j\'ai dit</button>' +
+         '</div>';
+    return h + "</div>";
+  }
+
+  function rendreFil(id){
+    var f = el("fil");
+    if(!f) return;
+    var d = laDiscussion(id);
+    if(!d.echanges.length){
+      f.innerHTML = '<p class="fil-vide">Rien n\'est dit encore. ' +
+        '<button class="bt bt-plein" data-act="causerie-ouvrir">Qu\'il commence</button></p>';
+      return;
+    }
+    f.innerHTML = d.echanges.map(function(m){
+      if(m.r === "x") return '<p class="bascule">' + esc(m.t) + '</p>';
+      return '<div class="bulle ' + (m.r === "u" ? "moi" : "lui") + '">' +
+             esc(m.t).replace(/\n/g, "<br>") + '</div>';
+    }).join("");
+    f.scrollTop = f.scrollHeight;
+  }
+
+  function faireParler(id, monTexte){
+    if(causerie.enCours || !window.Discussion) return;
+    var d = laDiscussion(id);
+    if(monTexte){ d.echanges.push({r:"u", t:monTexte}); poserDiscussion(id, d); }
+    rendreFil(id);
+
+    var f = el("fil");
+    if(!f) return;
+    var bulle = document.createElement("div");
+    bulle.className = "bulle lui en-cours";
+    bulle.textContent = "…";
+    f.appendChild(bulle);
+    f.scrollTop = f.scrollHeight;
+    majEnvoi(true);
+
+    causerie.enCours = window.Discussion.parler({
+      sujet: sujets[id] || {},
+      roleId: d.role,
+      echanges: d.echanges,
+      surTexte: function(t){
+        bulle.textContent = t;
+        f.scrollTop = f.scrollHeight;
+      },
+      surFin: function(t){
+        causerie.enCours = null; majEnvoi(false);
+        var n = laDiscussion(id);
+        n.echanges.push({r:"a", t:t});
+        if(n.echanges.length > 60) n.echanges = n.echanges.slice(-60);
+        poserDiscussion(id, n);
+        rendreFil(id);
+      },
+      surErreur: function(m){
+        causerie.enCours = null; majEnvoi(false);
+        bulle.className = "bulle souci";
+        bulle.textContent = m;
+        f.scrollTop = f.scrollHeight;
+      }
+    });
+  }
+
+  function changerRole(rid){
+    var id = causerie.sujetId;
+    if(!id || !window.Discussion) return;
+    var d = laDiscussion(id);
+    if(d.role === rid) return;
+    arreterCauserie();
+    var r = window.Discussion.role(rid);
+    if(d.echanges.length) d.echanges.push({r:"x", t:"à partir d'ici : " + r.nom.toLowerCase()});
+    d.role = rid;
+    poserDiscussion(id, d);
+    var zone = el("roles");
+    if(zone) Array.prototype.forEach.call(zone.querySelectorAll("[data-role]"), function(b){
+      b.setAttribute("aria-pressed", b.dataset.role === rid ? "true" : "false");
+    });
+    var res = el("role-resume");
+    if(res) res.textContent = r.resume;
+    rendreFil(id);
+  }
+
+  function garderCeQueJaiDit(){
+    var id = causerie.sujetId, s = sujets[id];
+    if(!id || !s) return;
+    var miennes = laDiscussion(id).echanges.filter(function(m){
+      return m.r === "u" && m.t && m.t.trim();
+    }).map(function(m){ return m.t.trim(); });
+    if(!miennes.length){ annonce("Tu n'as encore rien dit à garder."); return; }
+    var bloc = "— répétition du " + dateCourte(aujourdhui()) + " —\n" + miennes.join("\n\n");
+    var n = Object.assign({}, s);
+    n.notes = (n.notes && n.notes.trim() ? n.notes.trim() + "\n\n" : "") + bloc;
+    ecrireSujet(id, n);
+    annonce("Gardé dans les notes : " + miennes.length + " réponse" + (miennes.length > 1 ? "s" : "") + ".");
+  }
+
+  // Les réglages de l'interlocuteur, en bas de page. La clé ne s'affiche jamais en entier.
+  function rendreCle(){
+    if(!window.Discussion) return;
+    var etat = el("cle-etat"), posee = window.Discussion.cle.presente();
+    etat.textContent = posee
+      ? "Clé en place sur cet appareil (" + window.Discussion.cle.apercu() + ")."
+      : "Aucune clé ici : l'interlocuteur ne répondra pas.";
+    etat.className = "cle-etat" + (posee ? " cle-ok" : "");
+    el("bt-cle-oublier").hidden = !posee;
+  }
+  function rendreModele(){
+    if(!window.Discussion) return;
+    var sel = el("modele"), cour = window.Discussion.modele.lire(), note = "";
+    sel.innerHTML = window.Discussion.MODELES.map(function(m){
+      if(m.id === cour) note = m.note;
+      return '<option value="' + esc(m.id) + '"' + (m.id === cour ? " selected" : "") + ">" + esc(m.nom) + "</option>";
+    }).join("");
+    el("modele-note").textContent = note;
   }
 
   /* ---------- actions ---------- */
@@ -527,9 +700,31 @@
   }
 
   document.addEventListener("click", function(ev){
+    var rb = ev.target.closest("[data-role]");
+    if(rb){ changerRole(rb.dataset.role); return; }
+
     var b = ev.target.closest("[data-act]");
     if(!b) return;
     var act = b.dataset.act, id = b.dataset.id;
+
+    if(act === "causerie-ouvrir"){ faireParler(causerie.sujetId, ""); return; }
+    if(act === "envoyer"){
+      if(causerie.enCours){ arreterCauserie(); return; }
+      var ta = el("ma-reponse"), dit = ta ? ta.value.trim() : "";
+      if(!dit) return;
+      ta.value = "";
+      faireParler(causerie.sujetId, dit);
+      return;
+    }
+    if(act === "causerie-vider"){
+      arreterCauserie();
+      var dv = laDiscussion(causerie.sujetId);
+      dv.echanges = [];
+      poserDiscussion(causerie.sujetId, dv);
+      rendreFil(causerie.sujetId);
+      return;
+    }
+    if(act === "causerie-garder"){ garderCeQueJaiDit(); return; }
 
     if(act === "ouvrir"){ vue.ouvert = vue.ouvert === id ? null : id; vue.suppr = null; rendreTout(); return; }
     if(act === "tirer" || act === "autre"){ nouveauTirage(); return; }
@@ -603,9 +798,10 @@
 
   /* ---------- export / import ---------- */
   function exporter(){
+    // La clé de l'API n'est pas là-dedans : elle a son entrée à elle et ne sort pas de l'appareil.
     var paquet = {
-      app:"atelier-du-rien", version:1, exporte:new Date().toISOString(),
-      sujets:sujets, journal:journal, reglages:reglages
+      app:"atelier-du-rien", version:2, exporte:new Date().toISOString(),
+      sujets:sujets, journal:journal, discussions:discussions, reglages:reglages
     };
     var url = URL.createObjectURL(new Blob([JSON.stringify(paquet, null, 2)], {type:"application/json"}));
     var a = document.createElement("a");
@@ -634,6 +830,12 @@
     if(d.journal && typeof d.journal === "object"){
       Object.keys(d.journal).forEach(function(k){
         if(d.journal[k] && d.journal[k].titre) journal[k] = d.journal[k];
+      });
+    }
+    if(d.discussions && typeof d.discussions === "object"){
+      Object.keys(d.discussions).forEach(function(k){
+        var c = d.discussions[k];
+        if(c && Array.isArray(c.echanges)) discussions[k] = c;
       });
     }
     if(d.reglages){
@@ -680,6 +882,10 @@
       sauver();
       rendreTout();
     }
+    if(e.target.id === "modele" && window.Discussion){
+      window.Discussion.modele.ecrire(e.target.value);
+      rendreModele();
+    }
   });
 
   // Les notes et le lien s'enregistrent quand on quitte le champ.
@@ -723,8 +929,39 @@
     }
     majChrono();
   });
+  el("bt-cle").addEventListener("click", function(){
+    var champ = el("cle-api"), v = champ.value.trim();
+    if(!v){ annonce("Colle d'abord la clé dans le champ."); return; }
+    if(v.indexOf("sk-ant-") !== 0){ annonce("Une clé Anthropic commence par sk-ant-."); return; }
+    if(!window.Discussion.cle.ecrire(v)){ annonce("Cet appareil n'autorise pas l'enregistrement."); return; }
+    champ.value = "";
+    champ.type = "password";
+    el("bt-cle-voir").textContent = "Voir";
+    el("bt-cle-voir").setAttribute("aria-pressed", "false");
+    rendreCle();
+    annonce("Clé enregistrée sur cet appareil.");
+  });
+  el("bt-cle-voir").addEventListener("click", function(){
+    var champ = el("cle-api"), montrer = champ.type === "password";
+    champ.type = montrer ? "text" : "password";
+    this.textContent = montrer ? "Masquer" : "Voir";
+    this.setAttribute("aria-pressed", montrer ? "true" : "false");
+  });
+  el("bt-cle-oublier").addEventListener("click", function(){
+    window.Discussion.cle.oublier();
+    el("cle-api").value = "";
+    rendreCle();
+    annonce("Clé oubliée. Elle n'est plus sur cet appareil.");
+  });
+
   document.addEventListener("keydown", function(e){
-    if(e.key === "Escape" && !el("plateau").hidden) fermerPlateau();
+    if(e.key === "Escape" && !el("plateau").hidden){ fermerPlateau(); return; }
+    // Dans le fil : Ctrl (ou Cmd) + Entrée envoie, Entrée seule va à la ligne.
+    if(e.key === "Enter" && (e.metaKey || e.ctrlKey) && e.target && e.target.id === "ma-reponse"){
+      e.preventDefault();
+      var b = el("bt-envoyer");
+      if(b) b.click();
+    }
   });
 
   // Au retour sur l'appli après minuit, la date du jour a bougé.
@@ -735,6 +972,8 @@
   charger();
   if(!stockageOk) annonce("Cet appareil n'autorise pas l'enregistrement : les changements seront perdus en fermant la page.");
   rendreTout();
+  rendreCle();
+  rendreModele();
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){

@@ -8,8 +8,13 @@
   (accroche à dire telle quelle, trois temps). Ne pas transformer l'appli en gestionnaire de tâches.
 - Pas de framework ni d'étape de build : HTML + CSS + JS classiques, servis tels quels par GitHub Pages,
   installés sur l'iPhone via Safari > Sur l'écran d'accueil.
-- Données dans le `localStorage` (clé `atelier-du-rien.v1`) : `{version, sujets, journal, reglages}`.
-  Rien ne part sur un serveur. Toute évolution du format doit rester lisible par les exports existants.
+- Données dans le `localStorage` (clé `atelier-du-rien.v1`) : `{version, sujets, journal, discussions, reglages}`.
+  Toute évolution du format doit rester lisible par les exports existants.
+- L'interlocuteur (`js/discussion.js`) est la seule chose qui sort de l'appareil : un appel direct à
+  `api.anthropic.com` depuis le navigateur (en-tête `anthropic-dangerous-direct-browser-access`).
+  La clé est dans `localStorage` sous `atelier-du-rien.cle`, à part des fiches : elle n'entre jamais
+  dans l'export, et ne doit jamais être écrite dans un fichier du dépôt. Le modèle est sous
+  `atelier-du-rien.modele`. Quatre rôles, un fil par sujet, l'IA ne donne jamais la réponse à sa place.
 - `js/sujets.js` est la banque livrée (70 fiches, 12 thèmes). L'appli y puise au premier lancement et quand on
   touche « Compléter avec les sujets livrés ». Chaque fiche a exactement trois `temps`.
 - À chaque changement de fichier, incrémenter `VERSION` dans `sw.js` et garder la liste `FILES` à jour.
