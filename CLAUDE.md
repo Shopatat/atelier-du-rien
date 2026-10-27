@@ -38,6 +38,13 @@
   touche « Compléter avec les sujets livrés ». Chaque fiche a exactement trois `temps`.
 - À chaque changement de fichier, incrémenter `VERSION` dans `sw.js` et garder la liste `FILES` à jour.
 - Icônes générées par `node outils/icones.js` (pas de module à installer).
+- Flou d'iOS 26 en haut de l'écran : l'appli installée reçoit l'effet « liquid glass » du système
+  (dégradé flou sur les premiers points sous le haut de l'écran), et Apple ne documente aucun moyen
+  de le couper. Parade retenue, celle des projets qui s'y sont cassé les dents : un bandeau fixe
+  opaque pleine largeur (`body::before`, hauteur minimale `--bord-mini`, au-dessus du plateau), et
+  le contenu décalé de `--bord-flou` pour que le dégradé tombe sur du vide. Les deux variables
+  valent zéro hors `display-mode:standalone` : un onglet n'a pas le problème. Ne pas remettre de
+  fond translucide ni de `backdrop-filter` en haut de l'écran, c'est ce qui rallume l'effet.
 - Polices locales (Fraunces, Bricolage Grotesque, Space Mono) dans `fonts/` : pas d'appel réseau, hors ligne compris.
 - Tester sur mobile en portrait (iPhone d'abord) : zones sûres (`env(safe-area-inset-*)`) et appli lancée depuis
   l'écran d'accueil. Vérifier aussi le thème sombre (tout passe par les variables de `:root`).

@@ -65,13 +65,28 @@ body{
   -webkit-font-smoothing:antialiased;
   -webkit-text-size-adjust:100%;
 }
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--papier)}
+/* Le flou d'iOS 26 en haut de l'écran.
+   Une appli posée sur l'écran d'accueil reçoit l'effet « liquid glass » du système : les
+   premiers points sous le haut de l'écran sont floutés en dégradé. Apple ne documente aucun
+   réglage pour le couper. Ce que WebKit laisse tranquille, c'est un bandeau fixe large comme
+   la fenêtre et d'une seule couleur opaque — d'où celui-ci, avec une hauteur minimale, parce
+   que l'encoche déclare parfois zéro. Et comme le dégradé déborde quand même, on fait tomber
+   ce qui reste sur du vide en décalant le contenu d'autant. Rien de tout ça dans un onglet. */
+:root{ --bord-mini:0px; --bord-flou:0px }
+@media (display-mode:standalone){
+  :root{ --bord-mini:12px; --bord-flou:1.75rem }
+}
+body::before{
+  content:"";position:fixed;inset:0 0 auto;
+  height:max(env(safe-area-inset-top,0px), var(--bord-mini));
+  z-index:60;background:var(--papier);pointer-events:none
+}
 
 .enveloppe{
   max-width:52rem;margin:0 auto;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-top:calc(1.5rem + env(safe-area-inset-top,0px));
+  padding-top:calc(1.5rem + env(safe-area-inset-top,0px) + var(--bord-flou));
   padding-bottom:calc(5rem + env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;gap:2.75rem;
 }
@@ -226,7 +241,7 @@ input::placeholder,textarea::placeholder{color:var(--encre-faible)}
 .plateau{
   position:fixed;inset:0;z-index:50;background:var(--papier);
   display:flex;flex-direction:column;
-  padding-top:max(1rem,env(safe-area-inset-top,0px));
+  padding-top:calc(max(1rem,env(safe-area-inset-top,0px)) + var(--bord-flou));
   padding-bottom:max(1rem,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
