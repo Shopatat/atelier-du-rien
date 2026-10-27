@@ -36,12 +36,13 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
   C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.
   Anthropic ne publie pas de solde lisible depuis une appli, alors l'atelier compte lui-même : chaque réponse
-  déclare ses jetons, et le total est converti au tarif du modèle. Dis-lui ce que tu as chargé, et c'est **ce
-  qu'il en reste** qui s'affiche en grand, avec une barre qui descend vers zéro — un compte à rebours se lit
-  sans avoir à se rappeler de combien on est parti. Elle passe à l'ambre sous le cinquième du crédit, au rouge
-  à zéro. Le même chiffre est repris en petit dans la barre du mode tournage, là où on dépense :
-  il bouge sous les yeux à chaque réponse, sans avoir à quitter la discussion. Il se touche, aussi —
-  c'est là qu'on dit ce qu'on a chargé, sans redescendre en bas de la page. Le chiffre qui fait foi reste celui de la page Cost de la console.
+  déclare ses jetons, et le total est converti au tarif du modèle. Tu lui donnes le chiffre que t'affiche la
+  console, il repart de là, et c'est **ce qu'il en reste** qui s'affiche en grand, avec une barre qui descend
+  vers zéro — un compte à rebours se lit sans avoir à se rappeler de combien on est parti. Elle passe à l'ambre
+  au dernier cinquième, au rouge à zéro. Le même chiffre est repris en petit dans la barre du mode tournage,
+  là où on dépense : il bouge sous les yeux à chaque réponse, sans avoir à quitter la discussion. Il se touche,
+  aussi — c'est là qu'on le recale, sans redescendre en bas de la page. Écrire un nouveau chiffre remet le
+  compteur à zéro : ce qu'affiche la console est déjà net de ce qui a été dépensé. Le chiffre qui fait foi reste celui de la page Cost de la console.
 - **Le rythme** : les dix dernières semaines en grille, la série de jours en cours, le record, le compte du mois,
   et la semaine en cours face à la cadence visée (5/semaine par défaut).
 - **La banque** : 70 sujets livrés sur 12 thèmes — éveil, pièges, mental, méditation, non-dualité, corps, émotions,

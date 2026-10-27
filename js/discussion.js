@@ -138,14 +138,12 @@
       d.tours += 1;
       depense.poser(d);
     },
-    credit: function(v){
-      var d = depense.lire();
-      d.credit = Math.max(0, Number(v) || 0);
-      depense.poser(d);
-    },
-    remettre: function(){
+    // Le chiffre que donne la console, c'est ce qu'il RESTE, pas ce qu'on a chargé : on le
+    // prend comme nouveau point de départ et on repart de zéro, sinon on soustrairait deux
+    // fois ce qui est déjà dépensé.
+    recaler: function(v){
       var d = depenseVide();
-      d.credit = depense.lire().credit;   // le crédit chargé ne bouge pas
+      d.credit = Math.max(0, Number(v) || 0);
       depense.poser(d);
     },
     // en dollars, à partir des tarifs par million de jetons

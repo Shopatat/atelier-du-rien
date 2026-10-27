@@ -118,18 +118,17 @@
         <span class="appoint" id="modele-note"></span>
       </div>
 
-      <p>Dis-lui ce que tu as chargé et il t'affiche ce qu'il en reste, qui descend à chaque réponse.
-         Anthropic ne publie pas de solde à lire depuis une appli : l'atelier compte donc lui-même,
-         à partir des jetons que chaque réponse déclare, convertis au tarif du modèle. C'est une
-         estimation ; le chiffre qui fait foi reste celui de la
+      <p>Anthropic ne publie pas de solde à lire depuis une appli : l'atelier compte donc lui-même,
+         à partir des jetons que chaque réponse déclare, convertis au tarif du modèle. Dis-lui ce
+         que ta console affiche aujourd'hui et il repart de là, en comptant à rebours. Recale-le
+         quand tu veux, sur la
          page <a href="https://platform.claude.com/cost" target="_blank" rel="noopener noreferrer">Cost</a>
-         de la console.</p>
+         de la console : c'est ce chiffre-là qui fait foi, le nôtre n'est qu'une estimation entre deux.</p>
       <div class="cle-ligne">
-        <label class="etiquette" for="credit">J'ai chargé</label>
-        <input type="number" id="credit" min="0" step="1" inputmode="decimal" placeholder="5"
-               aria-label="Crédit chargé, en dollars">
-        <span class="appoint">dollars</span>
-        <button class="bt bt-discret bt-mini" id="bt-depense-zero">Remettre le compteur à zéro</button>
+        <label class="etiquette" for="credit">Il me reste</label>
+        <input type="number" id="credit" min="0" step="0.01" inputmode="decimal" placeholder="4,92"
+               aria-label="Ce que la console affiche, en dollars">
+        <span class="appoint">dollars — d'après la console</span>
       </div>
       <div class="solde" id="depense-etat" aria-live="polite"></div>
     </div>
@@ -145,9 +144,9 @@
     <button class="bt bt-discret" id="chrono-bt">Lancer</button>
     <button type="button" class="solde-mini" id="solde-plateau" data-act="solde-credit" hidden></button>
     <span class="solde-saisie" id="solde-saisie" hidden>
-      <label class="etiquette" for="credit-plateau">J'ai chargé</label>
-      <input type="number" id="credit-plateau" min="0" step="1" inputmode="decimal" placeholder="5"
-             aria-label="Crédit chargé, en dollars">
+      <label class="etiquette" for="credit-plateau">Il me reste</label>
+      <input type="number" id="credit-plateau" min="0" step="0.01" inputmode="decimal" placeholder="4,92"
+             aria-label="Ce que la console affiche, en dollars">
       <span class="appoint">$</span>
       <button class="bt bt-mini" data-act="solde-credit-ok">OK</button>
     </span>

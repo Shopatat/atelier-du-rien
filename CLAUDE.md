@@ -21,7 +21,10 @@
   (dollars par million de jetons, relevés sur platform.claude.com le 27/10/2026) : à revérifier avant
   de les croire, et à mettre à jour si Anthropic bouge ses prix. L'affichage montre le **reste** en
   grand (`.solde`), pas le dépensé : Fabien veut un compte qui descend, lisible sans se rappeler de
-  combien il est parti. Sans crédit déclaré, pas de reste possible : on retombe sur le dépensé seul.
+  combien il est parti. Le chiffre qu'on saisit est celui de la console, donc **ce qui reste** et non
+  ce qui a été chargé : `depense.recaler()` le prend comme nouveau départ et remet le compteur à
+  zéro, sinon on soustrairait deux fois le déjà-dépensé. Sans chiffre saisi, pas de reste possible :
+  on retombe sur le dépensé seul.
   Le même chiffre est repris en réduction (`.solde-mini`) dans la barre du mode tournage, qui ne
   défile pas : c'est là qu'on dépense, donc c'est là qu'il faut le voir bouger. C'est un bouton :
   il ouvre la saisie du crédit sur place (`.solde-saisie`), parce que c'est en discutant qu'on

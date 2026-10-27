@@ -728,6 +728,8 @@
     el("bt-cle-oublier").hidden = !posee;
   }
   // Des sommes minuscules : trois décimales tant qu'on est sous dix centimes.
+  // « 27 oct. » finit déjà par un point : on n'en remet pas un deuxième.
+  function phrase(t){ return /.$/.test(t) ? t + " " : t + ". "; }
   function sous(n){
     n = Number(n) || 0;
     return n.toFixed(n > 0 && n < 0.01 ? 3 : 2).replace(".", ",") + " $";
@@ -750,7 +752,7 @@
       z.innerHTML = '<span class="solde-mini-chiffre">' + esc(sous(paye)) + '</span>' +
                     '<span class="solde-mini-mot">dépensés</span>';
       z.setAttribute("aria-label",
-        sous(paye) + " dépensés — touche pour dire ce que tu as chargé et voir ce qu'il en reste");
+        sous(paye) + " dépensés — touche pour dire ce que la console affiche et compter à rebours");
       return;
     }
     var reste = Math.max(0, d.credit - paye);
@@ -759,10 +761,10 @@
     z.innerHTML = '<span class="solde-mini-chiffre">' + esc(sous(reste)) + '</span>' +
                   '<span class="solde-mini-barre"><i style="width:' + part.toFixed(1) + '%"></i></span>';
     z.setAttribute("aria-label",
-      "Il te reste environ " + sous(reste) + " sur les " + sous(d.credit) + " chargés");
+      "Il te reste environ " + sous(reste) + ", recalé à " + sous(d.credit) + " le " + dateCourte(d.debut));
   }
 
-  // Le crédit se règle aussi depuis le plateau : descendre en bas de la page pour ça,
+  // Le solde se recale aussi depuis le plateau : descendre en bas de la page pour ça,
   // c'était quitter la discussion au moment précis où on voulait la suivre.
   function ouvrirSaisieCredit(){
     var b = el("solde-plateau"), s = el("solde-saisie"), ch = el("credit-plateau");
@@ -775,7 +777,7 @@
   function validerSaisieCredit(){
     var s = el("solde-saisie"), ch = el("credit-plateau");
     if(!s || !ch || !window.Discussion) return;
-    window.Discussion.depense.credit(ch.value);
+    window.Discussion.depense.recaler(ch.value);
     s.hidden = true;
     rendreDepense();
   }
@@ -790,16 +792,16 @@
     if(!zone) return;
 
     var tours = d.tours
-      ? d.tours + " réponse" + (d.tours > 1 ? "s" : "") + " depuis le " + dateCourte(d.debut) +
-        ", environ " + sous(paye) + " dépensés"
+      ? d.tours + " réponse" + (d.tours > 1 ? "s" : "") + " depuis, environ " + sous(paye) + " dépensés"
       : "";
 
     // Sans crédit déclaré, il n'y a rien à soustraire : on ne peut montrer que le dépensé.
     if(!d.credit){
       zone.className = "solde";
       zone.innerHTML = '<p class="solde-note">' +
-        esc(tours ? tours + ". " : "Rien de dépensé depuis cet appareil pour l'instant. ") +
-        "Dis-lui ce que tu as chargé, juste au-dessus, et il affichera ce qu'il en reste.</p>";
+        esc(d.tours ? sous(paye) + " dépensés depuis le " + phrase(dateCourte(d.debut))
+                    : "Rien de dépensé depuis cet appareil pour l'instant. ") +
+        "Dis-lui ce que la console affiche, juste au-dessus, et il comptera à rebours.</p>";
       return;
     }
 
@@ -810,9 +812,9 @@
       '<div class="solde-reste"><span class="solde-chiffre">' + esc(sous(reste)) + '</span>' +
       '<span class="solde-mot">' + (reste <= 0 ? "plus rien" : "il te reste") + '</span></div>' +
       '<div class="solde-barre"><span style="width:' + part.toFixed(1) + '%"></span></div>' +
-      '<p class="solde-note">' + esc(tours
-        ? tours + ", sur les " + sous(d.credit) + " chargés."
-        : "Rien de dépensé depuis cet appareil pour l'instant : tu partiras de " + sous(d.credit) + ".") +
+      '<p class="solde-note">' +
+      esc("Recalé à " + sous(d.credit) + " le " + dateCourte(d.debut) + " d'après la console" +
+          (tours ? " — " + tours + "." : ". Rien de dépensé depuis.")) +
       '</p>';
   }
   function rendreModele(){
@@ -1043,7 +1045,7 @@
       rendreModele();
     }
     if(e.target.id === "credit" && window.Discussion){
-      window.Discussion.depense.credit(e.target.value);
+      window.Discussion.depense.recaler(e.target.value);
       rendreDepense();
     }
   });
@@ -1106,11 +1108,6 @@
     champ.type = montrer ? "text" : "password";
     this.textContent = montrer ? "Masquer" : "Voir";
     this.setAttribute("aria-pressed", montrer ? "true" : "false");
-  });
-  el("bt-depense-zero").addEventListener("click", function(){
-    window.Discussion.depense.remettre();
-    rendreDepense();
-    annonce("Compteur remis à zéro. Le crédit chargé, lui, n'a pas bougé.");
   });
   el("bt-cle-oublier").addEventListener("click", function(){
     window.Discussion.cle.oublier();
