@@ -504,6 +504,7 @@
       blocDiscussion(id);
     causerie.sujetId = id;
     rendreFil(id);
+    rendreSoldePlateau();
     el("plateau").hidden = false;
     el("plateau-fermer").focus();
   }
@@ -732,8 +733,34 @@
   }
   // Ce qui reste en grand, le dépensé en petit : un compte qui descend se lit d'un coup d'œil,
   // alors qu'une somme dépensée oblige à se rappeler de combien on est parti.
+  // Le même solde en réduction, dans la barre du mode tournage : c'est en discutant que ça
+  // se dépense, et cette barre-là reste à l'écran pendant que le fil défile.
+  function rendreSoldePlateau(){
+    var z = el("solde-plateau");
+    if(!z || !window.Discussion) return;
+    // Sans clé, rien ne se consomme : inutile d'encombrer la barre.
+    if(!window.Discussion.cle.presente()){ z.hidden = true; return; }
+    var d = window.Discussion.depense.lire(), paye = window.Discussion.depense.dollars();
+    z.hidden = false;
+    if(!d.credit){
+      z.className = "solde-mini";
+      z.innerHTML = '<span class="solde-mini-chiffre">' + esc(sous(paye)) + '</span>' +
+                    '<span class="solde-mini-mot">dépensés</span>';
+      z.setAttribute("aria-label", sous(paye) + " dépensés depuis cet appareil");
+      return;
+    }
+    var reste = Math.max(0, d.credit - paye);
+    var part = Math.max(0, Math.min(100, reste / d.credit * 100));
+    z.className = "solde-mini" + (reste <= 0 ? " vide" : (part <= 20 ? " bas" : ""));
+    z.innerHTML = '<span class="solde-mini-chiffre">' + esc(sous(reste)) + '</span>' +
+                  '<span class="solde-mini-barre"><i style="width:' + part.toFixed(1) + '%"></i></span>';
+    z.setAttribute("aria-label",
+      "Il te reste environ " + sous(reste) + " sur les " + sous(d.credit) + " chargés");
+  }
+
   function rendreDepense(){
     if(!window.Discussion) return;
+    rendreSoldePlateau();
     var d = window.Discussion.depense.lire(), paye = window.Discussion.depense.dollars();
     var champ = el("credit");
     if(champ && document.activeElement !== champ) champ.value = d.credit ? String(d.credit) : "";
