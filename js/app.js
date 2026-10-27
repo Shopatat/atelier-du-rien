@@ -668,6 +668,7 @@
         if(n.echanges.length > 60) n.echanges = n.echanges.slice(-60);
         poserDiscussion(id, n);
         rendreFil(id);
+        rendreDepense();
         if(window.Discussion.voix.active()) window.Discussion.voix.dire(t);
       },
       surErreur: function(m){
@@ -723,6 +724,30 @@
       : "Aucune clé ici : l'interlocuteur ne répondra pas.";
     etat.className = "cle-etat" + (posee ? " cle-ok" : "");
     el("bt-cle-oublier").hidden = !posee;
+  }
+  // Des sommes minuscules : trois décimales tant qu'on est sous dix centimes.
+  function sous(n){
+    n = Number(n) || 0;
+    return n.toFixed(n > 0 && n < 0.1 ? 3 : 2).replace(".", ",") + " $";
+  }
+  function rendreDepense(){
+    if(!window.Discussion) return;
+    var d = window.Discussion.depense.lire(), paye = window.Discussion.depense.dollars();
+    var champ = el("credit");
+    if(champ && document.activeElement !== champ) champ.value = d.credit ? String(d.credit) : "";
+    var p = el("depense-etat");
+    if(!p) return;
+    if(!d.tours){
+      p.textContent = "Rien de dépensé depuis cet appareil pour l'instant.";
+      p.className = "cle-etat cle-ok";
+      return;
+    }
+    var reste = d.credit - paye;
+    var txt = d.tours + " réponse" + (d.tours > 1 ? "s" : "") + " depuis le " + dateCourte(d.debut) +
+              ", environ " + sous(paye) + " dépensés";
+    if(d.credit) txt += " — il resterait " + sous(Math.max(0, reste)) + " sur les " + sous(d.credit) + " chargés";
+    p.textContent = txt + ".";
+    p.className = "cle-etat" + (d.credit && reste <= 0 ? "" : " cle-ok");
   }
   function rendreModele(){
     if(!window.Discussion) return;
@@ -949,6 +974,10 @@
       window.Discussion.modele.ecrire(e.target.value);
       rendreModele();
     }
+    if(e.target.id === "credit" && window.Discussion){
+      window.Discussion.depense.credit(e.target.value);
+      rendreDepense();
+    }
   });
 
   // Les notes et le lien s'enregistrent quand on quitte le champ.
@@ -1010,6 +1039,11 @@
     this.textContent = montrer ? "Masquer" : "Voir";
     this.setAttribute("aria-pressed", montrer ? "true" : "false");
   });
+  el("bt-depense-zero").addEventListener("click", function(){
+    window.Discussion.depense.remettre();
+    rendreDepense();
+    annonce("Compteur remis à zéro. Le crédit chargé, lui, n'a pas bougé.");
+  });
   el("bt-cle-oublier").addEventListener("click", function(){
     window.Discussion.cle.oublier();
     el("cle-api").value = "";
@@ -1037,6 +1071,7 @@
   rendreTout();
   rendreCle();
   rendreModele();
+  rendreDepense();
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){

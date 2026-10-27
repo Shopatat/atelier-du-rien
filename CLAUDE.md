@@ -15,6 +15,15 @@
   La clé est dans `localStorage` sous `atelier-du-rien.cle`, à part des fiches : elle n'entre jamais
   dans l'export, et ne doit jamais être écrite dans un fichier du dépôt. Le modèle est sous
   `atelier-du-rien.modele`. Quatre rôles, un fil par sujet, l'IA ne donne jamais la réponse à sa place.
+- Coût : Anthropic ne publie aucun endpoint de solde (l'Admin API, seule à parler d'argent, est fermée
+  aux comptes individuels et ne donne que le dépensé). L'appli compte donc elle-même, à partir du
+  `usage` de chaque réponse, sous `atelier-du-rien.depense`. Les tarifs sont dans `MODELES[].tarif`
+  (dollars par million de jetons, relevés sur platform.claude.com le 27/10/2026) : à revérifier avant
+  de les croire, et à mettre à jour si Anthropic bouge ses prix.
+- Réflexion : le modèle vif part avec `thinking:{type:"between_tools"}` + `effort:"low"` — pour trois
+  phrases, réfléchir avant de parler coûte du temps et des jetons, et avec une limite serrée ça rendait
+  des réponses vides. Le profond garde sa réflexion (`effort:"medium"`, on ne peut pas la couper sur
+  Opus 5.5). Si l'API refuse un de ces réglages, la requête repart une fois sans lui.
 - Voix : `speechSynthesis` pour la lecture (préférence sous `atelier-du-rien.voix`, voix française locale de
   préférence) et `webkitSpeechRecognition` pour la dictée. Tout passe par le moteur de l'appareil, rien par
   l'appli. Sur iPhone le moteur de parole ne se débloque qu'après un geste : le bouton « Qu'il parle » dit

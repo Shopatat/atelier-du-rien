@@ -35,6 +35,9 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   Il faut une clé Anthropic ([console.anthropic.com](https://console.anthropic.com/settings/keys)), collée en bas de
   la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
   C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.
+  Anthropic ne publie pas de solde lisible depuis une appli, alors l'atelier compte lui-même : chaque réponse
+  déclare ses jetons, et le total est converti au tarif du modèle. Dis-lui ce que tu as chargé, il te dira ce
+  qu'il en reste. Le chiffre qui fait foi reste celui de la page Cost de la console.
 - **Le rythme** : les dix dernières semaines en grille, la série de jours en cours, le record, le compte du mois,
   et la semaine en cours face à la cadence visée (5/semaine par défaut).
 - **La banque** : 70 sujets livrés sur 12 thèmes — éveil, pièges, mental, méditation, non-dualité, corps, émotions,

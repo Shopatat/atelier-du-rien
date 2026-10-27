@@ -7,16 +7,33 @@
   "use strict";
 
   var CLE_API    = "atelier-du-rien.cle";
-  var CLE_MODELE = "atelier-du-rien.modele";
-  var CLE_VOIX   = "atelier-du-rien.voix";
-  var URL_API    = "https://api.anthropic.com/v1/messages";
+  var CLE_MODELE  = "atelier-du-rien.modele";
+  var CLE_VOIX    = "atelier-du-rien.voix";
+  var CLE_DEPENSE = "atelier-du-rien.depense";
+  var URL_API     = "https://api.anthropic.com/v1/messages";
   var MODELE_PAR_DEFAUT = "claude-sonnet-5-5";
   var TOURS_ENVOYES = 24;   // on ne renvoie que la fin de la discussion
 
+  // `reglage` part avec chaque demande. Le vif ne réfléchit pas avant de parler
+  // (« between_tools ») : pour trois phrases c'est du temps et des jetons pour rien,
+  // et c'est ce qui le faisait rendre des réponses vides. Le profond, lui, réfléchit.
+  // `tarif` : dollars par million de jetons, relevés sur platform.claude.com le 27/10/2026.
   var MODELES = [
-    {id:"claude-sonnet-5-5", nom:"Vif",    note:"répond vite, bon pour enchaîner"},
-    {id:"claude-opus-5-5",   nom:"Profond", note:"creuse plus loin, répond plus lentement"}
+    {
+      id:"claude-sonnet-5-5", nom:"Vif", note:"répond vite, bon pour enchaîner",
+      reglage:{thinking:{type:"between_tools"}, output_config:{effort:"low"}},
+      tarif:{entree:2, sortie:10}
+    },
+    {
+      id:"claude-opus-5-5", nom:"Profond", note:"creuse plus loin, répond plus lentement",
+      reglage:{output_config:{effort:"medium"}},
+      tarif:{entree:4, sortie:20}
+    }
   ];
+  function leModele(id){
+    for(var i = 0; i < MODELES.length; i++) if(MODELES[i].id === id) return MODELES[i];
+    return MODELES[0];
+  }
 
   /* ---------- les quatre interlocuteurs ---------- */
   var ROLES = [
@@ -90,6 +107,56 @@
       return MODELE_PAR_DEFAUT;
     },
     ecrire: function(v){ return ecrire(CLE_MODELE, v); }
+  };
+
+  /* ---------- ce que ça coûte ---------- */
+  // Anthropic ne publie aucun endpoint pour lire le solde d'un compte : l'Admin API,
+  // seule à parler d'argent, est fermée aux comptes individuels et ne donne de toute
+  // façon que le dépensé. On compte donc nous-mêmes, à partir des jetons que chaque
+  // réponse déclare. Le chiffre d'Anthropic reste celui de la page Cost de la console.
+  function depenseVide(){ return {debut:new Date().toISOString().slice(0,10), credit:0, modeles:{}, tours:0}; }
+  var depense = {
+    lire: function(){
+      try{
+        var d = JSON.parse(lire(CLE_DEPENSE) || "null");
+        if(!d || typeof d !== "object") return depenseVide();
+        if(!d.modeles || typeof d.modeles !== "object") d.modeles = {};
+        d.credit = Number(d.credit) || 0;
+        d.tours = Number(d.tours) || 0;
+        if(!d.debut) d.debut = depenseVide().debut;
+        return d;
+      }catch(e){ return depenseVide(); }
+    },
+    poser: function(d){ return ecrire(CLE_DEPENSE, JSON.stringify(d)); },
+    ajouter: function(id, u){
+      if(!u) return;
+      var d = depense.lire();
+      var m = d.modeles[id] || {entree:0, sortie:0};
+      m.entree += Number(u.entree) || 0;
+      m.sortie += Number(u.sortie) || 0;
+      d.modeles[id] = m;
+      d.tours += 1;
+      depense.poser(d);
+    },
+    credit: function(v){
+      var d = depense.lire();
+      d.credit = Math.max(0, Number(v) || 0);
+      depense.poser(d);
+    },
+    remettre: function(){
+      var d = depenseVide();
+      d.credit = depense.lire().credit;   // le crédit chargé ne bouge pas
+      depense.poser(d);
+    },
+    // en dollars, à partir des tarifs par million de jetons
+    dollars: function(){
+      var d = depense.lire(), total = 0;
+      Object.keys(d.modeles).forEach(function(id){
+        var t = leModele(id).tarif, m = d.modeles[id];
+        total += (m.entree / 1e6) * t.entree + (m.sortie / 1e6) * t.sortie;
+      });
+      return total;
+    }
   };
 
   /* ---------- la voix : il lit ses réponses ---------- */
@@ -232,9 +299,10 @@
   function lireFlux(reponse, surTexte){
     var lect = reponse.body.getReader(), dec = new TextDecoder();
     var reste = "", texte = "", pense = 0, arret = "", souci = null;
+    var usage = {entree:0, sortie:0};
     return (function suite(){
       return lect.read().then(function(p){
-        if(p.done) return {texte:texte, pense:pense, arret:arret};
+        if(p.done) return {texte:texte, pense:pense, arret:arret, usage:usage};
         reste += dec.decode(p.value, {stream:true});
         var lignes = reste.split("\n");
         reste = lignes.pop();
@@ -251,8 +319,11 @@
             } else if(typeof ev.delta.thinking === "string"){
               pense += ev.delta.thinking.length;
             }
-          } else if(ev.type === "message_delta" && ev.delta && ev.delta.stop_reason){
-            arret = ev.delta.stop_reason;
+          } else if(ev.type === "message_start" && ev.message && ev.message.usage){
+            usage.entree += Number(ev.message.usage.input_tokens) || 0;
+          } else if(ev.type === "message_delta"){
+            if(ev.delta && ev.delta.stop_reason) arret = ev.delta.stop_reason;
+            if(ev.usage) usage.sortie = Number(ev.usage.output_tokens) || usage.sortie;
           } else if(ev.type === "error"){
             souci = (ev.error && ev.error.message) || "La réponse s'est interrompue.";
           }
@@ -282,37 +353,56 @@
 
     var flux = !!(window.ReadableStream && window.TextDecoder && window.AbortController);
     var ctrl = flux ? new AbortController() : null;
-    var corps = {
-      model: modele.lire(),
-      // Large exprès : il ne dit que deux ou trois phrases, mais s'il rédige en coulisse
-      // (bloc « thinking »), une limite serrée mange tout le budget et il rend une réponse vide.
-      max_tokens: 1500,
-      system: consigne(o.sujet, role(o.roleId)),
-      messages: messages(o.echanges)
-    };
-    if(flux) corps.stream = true;
+    var id = modele.lire(), m = leModele(id);
 
-    fetch(URL_API, {
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-api-key":k,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body: JSON.stringify(corps),
-      signal: ctrl ? ctrl.signal : undefined
-    }).then(function(r){
-      if(!r.ok) return r.text().then(function(t){ throw new Error(texteErreur(r.status, t)); });
-      if(flux && r.body && r.body.getReader) return lireFlux(r, o.surTexte);
-      return r.json().then(function(d){
-        var blocs = d.content || [];
-        var t = blocs.map(function(b){ return (b && b.type === "text" && b.text) || ""; }).join("");
-        var p = blocs.map(function(b){ return (b && b.thinking) || ""; }).join("").length;
-        o.surTexte(t);
-        return {texte:t, pense:p, arret:d.stop_reason || ""};
+    function corpsDe(avecReglage){
+      var c = {
+        model: id,
+        // Large exprès : s'il rédige en coulisse (bloc « thinking »), une limite
+        // serrée mange tout le budget et il rend une réponse vide.
+        max_tokens: 1500,
+        system: consigne(o.sujet, role(o.roleId)),
+        messages: messages(o.echanges)
+      };
+      if(avecReglage && m.reglage) Object.keys(m.reglage).forEach(function(k2){ c[k2] = m.reglage[k2]; });
+      if(flux) c.stream = true;
+      return c;
+    }
+
+    // Si l'API refuse le réglage de réflexion (il change d'un modèle à l'autre),
+    // on repart une fois sans lui plutôt que de laisser tomber la discussion.
+    function tenter(avecReglage){
+      return fetch(URL_API, {
+        method:"POST",
+        headers:{
+          "content-type":"application/json",
+          "x-api-key":k,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body: JSON.stringify(corpsDe(avecReglage)),
+        signal: ctrl ? ctrl.signal : undefined
+      }).then(function(r){
+        if(!r.ok) return r.text().then(function(t){
+          if(r.status === 400 && avecReglage && /thinking|effort|output_config/i.test(t)) return tenter(false);
+          throw new Error(texteErreur(r.status, t));
+        });
+        if(flux && r.body && r.body.getReader) return lireFlux(r, o.surTexte);
+        return r.json().then(function(d){
+          var blocs = d.content || [];
+          var t = blocs.map(function(b){ return (b && b.type === "text" && b.text) || ""; }).join("");
+          var p = blocs.map(function(b){ return (b && b.thinking) || ""; }).join("").length;
+          o.surTexte(t);
+          return {texte:t, pense:p, arret:d.stop_reason || "", usage:{
+            entree:(d.usage && d.usage.input_tokens) || 0,
+            sortie:(d.usage && d.usage.output_tokens) || 0
+          }};
+        });
       });
-    }).then(function(res){
+    }
+
+    tenter(true).then(function(res){
+      if(res && res.usage) depense.ajouter(id, res.usage);
       var t = String((res && res.texte) || "").trim();
       if(!t) throw new Error(pourquoiRien(res || {}));
       o.surFin(t);
@@ -330,6 +420,6 @@
   window.Discussion = {
     ROLES:ROLES, MODELES:MODELES, role:role,
     cle:cle, modele:modele, parler:parler,
-    voix:voix, micro:micro
+    voix:voix, micro:micro, depense:depense
   };
 })();

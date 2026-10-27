@@ -242,6 +242,7 @@ input::placeholder,textarea::placeholder{color:var(--encre-faible)}
 /* ---------- l'interlocuteur ---------- */
 .cle-ligne{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 .cle-ligne input{flex:1 1 16rem;min-width:0;font-family:var(--police-util);font-size:.8rem}
+.cle-ligne input[type=number]{flex:0 0 5.5rem}
 .cle-ligne select{width:auto}
 .cle-ligne .appoint{font-family:var(--police-util);font-size:.68rem;letter-spacing:.04em;color:var(--encre-faible)}
 .cle-etat{font-family:var(--police-util);font-size:.7rem;letter-spacing:.04em;color:var(--danger)}
