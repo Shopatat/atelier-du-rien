@@ -524,6 +524,11 @@
   // Un fil par sujet : il relance, tu réponds. La logique de l'API est dans js/discussion.js.
   var causerie = {sujetId:null, enCours:null};
   var ROLE_PAR_DEFAUT = "intervieweur";
+  // Ce qu'on lui dit pour en finir. Ça part comme une réponse de plus et ça reste dans le
+  // fil : c'est bien Fabien qui a demandé qu'on s'arrête. Marquée (c:1) pour ne pas aller
+  // dans les notes avec ses vraies réponses.
+  var CLOTURE = "On s'arrête là. Pas de nouvelle question : dis-moi ce que tu as compris, " +
+                "ce qui a bougé pour toi, et ce qui te reste en travers.";
 
   function laDiscussion(id){
     var d = discussions[id];
@@ -608,13 +613,16 @@
          '<textarea id="ma-reponse" rows="2" placeholder="Réponds-lui — au clavier, ou en parlant."></textarea>' +
          (window.Discussion.micro.possible()
            ? '<button class="bt" id="bt-dicter" data-act="dicter" aria-pressed="false">Parler</button>' : "") +
+         // Les deux voix côte à côte, sous le fil : la lecture à voix haute était tout en bas
+         // du plateau, au-delà du champ de réponse, et personne ne descendait jusque-là.
+         (window.Discussion.voix.possible()
+           ? '<button class="bt" data-act="voix" aria-pressed="' +
+             (window.Discussion.voix.active() ? "true" : "false") + '">Qu\'il parle</button>' : "") +
          '<button class="bt bt-plein" id="bt-envoyer" data-act="envoyer">Envoyer</button>' +
          '</div>';
     h += '<p class="dit-micro" id="dit-micro"></p>';
     h += '<div class="outils">' +
-         (window.Discussion.voix.possible()
-           ? '<button class="bt" data-act="voix" aria-pressed="' +
-             (window.Discussion.voix.active() ? "true" : "false") + '">Qu\'il parle</button>' : "") +
+         '<button class="bt bt-discret" data-act="causerie-conclure">Qu\'il conclue</button>' +
          '<button class="bt bt-discret" data-act="causerie-vider">Recommencer</button>' +
          '<button class="bt bt-discret" data-act="causerie-garder">Garder ce que j\'ai dit</button>' +
          '</div>';
@@ -630,20 +638,31 @@
         '<button class="bt bt-plein" data-act="causerie-ouvrir">Qu\'il commence</button></p>';
       return;
     }
-    f.innerHTML = d.echanges.map(function(m){
+    f.innerHTML = d.echanges.map(function(m, i){
       if(m.r === "x") return '<p class="bascule">' + esc(m.t) + '</p>';
+      // Un bouton sur sa dernière réponse : de quoi l'entendre à la demande, sans allumer la
+      // lecture automatique — et c'est un geste, donc le moteur de parole répond à coup sûr.
+      var dernier = m.r === "a" && i === d.echanges.length - 1;
       return '<div class="bulle ' + (m.r === "u" ? "moi" : "lui") + '">' +
-             esc(m.t).replace(/\n/g, "<br>") + '</div>';
+             esc(m.t).replace(/\n/g, "<br>") +
+             (dernier && window.Discussion.voix.possible()
+               ? '<button class="bt bt-mini redire" data-act="redire">L\'écouter</button>' : "") +
+             '</div>';
     }).join("");
     f.scrollTop = f.scrollHeight;
   }
 
-  function faireParler(id, monTexte){
+  function faireParler(id, monTexte, mode){
     if(causerie.enCours || !window.Discussion) return;
     window.Discussion.voix.taire();
     arreterDictee();
     var d = laDiscussion(id);
-    if(monTexte){ d.echanges.push({r:"u", t:monTexte}); poserDiscussion(id, d); }
+    if(monTexte){
+      var mien = {r:"u", t:monTexte};
+      if(mode && mode.clore) mien.c = 1;
+      d.echanges.push(mien);
+      poserDiscussion(id, d);
+    }
     rendreFil(id);
 
     var f = el("fil");
@@ -655,16 +674,28 @@
     f.scrollTop = f.scrollHeight;
     majEnvoi(true);
 
-    causerie.enCours = window.Discussion.parler({
+    // Combien de fois il a déjà répondu : c'est ce qui dit à l'interlocuteur qu'il est temps
+    // de resserrer, puis de conclure, au lieu de relancer sans fin.
+    var tours = d.echanges.filter(function(m){ return m.r === "u"; }).length;
+
+    // surErreur peut tomber dans la foulée (pas de clé sur l'appareil) : sans ce drapeau, le
+    // témoin rendu par parler() vient écraser le null que surErreur a posé, et plus rien ne
+    // s'envoie jusqu'à la fermeture du plateau.
+    var enVol = true;
+    function rendu(){ enVol = false; causerie.enCours = null; majEnvoi(false); }
+
+    var tenu = window.Discussion.parler({
       sujet: sujets[id] || {},
       roleId: d.role,
       echanges: d.echanges,
+      tours: tours,
+      clore: !!(mode && mode.clore),
       surTexte: function(t){
         bulle.textContent = t;
         f.scrollTop = f.scrollHeight;
       },
       surFin: function(t){
-        causerie.enCours = null; majEnvoi(false);
+        rendu();
         var n = laDiscussion(id);
         n.echanges.push({r:"a", t:t});
         if(n.echanges.length > 60) n.echanges = n.echanges.slice(-60);
@@ -674,7 +705,7 @@
         if(window.Discussion.voix.active()) window.Discussion.voix.dire(t);
       },
       surErreur: function(m){
-        causerie.enCours = null; majEnvoi(false);
+        rendu();
         bulle.className = "bulle souci";
         // Ta réponse reste dans le fil : « Réessayer » relance sans te la faire réécrire.
         bulle.innerHTML = esc(m) +
@@ -682,6 +713,7 @@
         f.scrollTop = f.scrollHeight;
       }
     });
+    if(enVol) causerie.enCours = tenu;
   }
 
   function changerRole(rid){
@@ -707,7 +739,7 @@
     var id = causerie.sujetId, s = sujets[id];
     if(!id || !s) return;
     var miennes = laDiscussion(id).echanges.filter(function(m){
-      return m.r === "u" && m.t && m.t.trim();
+      return m.r === "u" && !m.c && m.t && m.t.trim();
     }).map(function(m){ return m.t.trim(); });
     if(!miennes.length){ annonce("Tu n'as encore rien dit à garder."); return; }
     var bloc = "— répétition du " + dateCourte(aujourdhui()) + " —\n" + miennes.join("\n\n");
@@ -846,6 +878,9 @@
   }
 
   document.addEventListener("click", function(ev){
+    // Le premier doigt posé de la séance ouvre le moteur de parole (voir js/discussion.js).
+    if(window.Discussion) window.Discussion.voix.reveiller();
+
     var rb = ev.target.closest("[data-role]");
     if(rb){ changerRole(rb.dataset.role); return; }
 
@@ -880,6 +915,16 @@
       dv.echanges = [];
       poserDiscussion(causerie.sujetId, dv);
       rendreFil(causerie.sujetId);
+      return;
+    }
+    if(act === "causerie-conclure"){
+      if(!laDiscussion(causerie.sujetId).echanges.length){ annonce("Il n'a encore rien dit."); return; }
+      faireParler(causerie.sujetId, CLOTURE, {clore:true});
+      return;
+    }
+    if(act === "redire"){
+      var ech = laDiscussion(causerie.sujetId).echanges;
+      for(var j = ech.length - 1; j >= 0; j--) if(ech[j].r === "a"){ window.Discussion.voix.dire(ech[j].t); break; }
       return;
     }
     if(act === "causerie-garder"){ garderCeQueJaiDit(); return; }

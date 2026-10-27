@@ -18,6 +18,8 @@ telle quelle, trois temps à tenir, la sortie.
 
 Ouvre l'adresse dans **Safari**, touche **Partager**, puis **Sur l'écran d'accueil**.
 L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne après la première ouverture.
+La page défile mais ne se zoome pas : un pincement ou un double-touche par mégarde laissait les boutons
+hors de l'écran, et c'était la plupart du temps la vraie cause des « ça a disparu ».
 
 ## Ce qu'il y a dedans
 
@@ -30,8 +32,13 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   Quatre voix au choix — l'intervieweur qui creuse, le chercheur qui cite les maîtres, le sceptique que rien
   n'impressionne, celui qui en bave et ne veut pas de théorie. Il ne donne jamais la réponse à ta place : c'est en
   lui répondant que tu la trouves. « Garder ce que j'ai dit » verse tes réponses dans les notes de la fiche.
+  Il est **contentable** : quand tu réponds vraiment, il le prend, le dit, et ne repose pas la question. Au bout
+  de quelques tours il resserre de lui-même, puis conclut — et « Qu'il conclue » met fin à la discussion quand
+  tu veux : il dit alors ce que tu lui as fait comprendre, ce qui a bougé, ce qui lui reste en travers, sans
+  relancer. Un interlocuteur qu'on n'épuise jamais finit par être une corvée.
   Pour que ça se passe vraiment à voix haute : **Parler** dicte ta réponse au lieu de la taper, **Qu'il parle**
-  fait lire la sienne par le téléphone. Les deux passent par le moteur de parole de l'appareil, pas par l'appli.
+  fait lire la sienne par le téléphone, et « L'écouter » sous sa dernière réponse la redit à la demande. Les deux
+  passent par le moteur de parole de l'appareil, pas par l'appli.
   Il faut une clé Anthropic ([console.anthropic.com](https://console.anthropic.com/settings/keys)), collée en bas de
   la page. Elle reste dans le navigateur de l'appareil, n'entre pas dans l'export, n'est jamais dans le dépôt.
   C'est la seule chose de l'appli qui sorte de l'appareil, et le seul morceau qui ne marche pas hors ligne.

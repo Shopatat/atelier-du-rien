@@ -13,6 +13,7 @@
   var URL_API     = "https://api.anthropic.com/v1/messages";
   var MODELE_PAR_DEFAUT = "claude-sonnet-5-5";
   var TOURS_ENVOYES = 24;   // on ne renvoie que la fin de la discussion
+  var ATTENTE_MAX   = 45000; // au-delà, la demande est considérée perdue (voir parler())
 
   // `reglage` part avec chaque demande. Le vif ne réfléchit pas avant de parler
   // (« between_tools ») : pour trois phrases c'est du temps et des jetons pour rien,
@@ -44,7 +45,10 @@
       consigne:"Tu mènes l'entretien et tu veux qu'il soit bon. Bienveillant, tenace, jamais " +
         "flatteur. Quand il répond à côté, tu reposes la même question, autrement. Quand il " +
         "généralise, tu demandes un exemple précis, vécu, daté. Quand il lâche un mot fort sans " +
-        "le développer, tu reviens dessus au tour suivant. Tu ne complimentes pas : tu creuses."
+        "le développer, tu reviens dessus au tour suivant. Tu ne complimentes pas : tu creuses.",
+      comble:"une chose précise et dicible à la caméra — un exemple vécu, une phrase nette. " +
+        "Quand il te la donne, tu le lui dis simplement et tu passes au point suivant, ou tu " +
+        "arrêtes l'entretien. Tu ne reposes pas une question déjà réglée."
     },
     {
       id:"chercheur",
@@ -54,7 +58,10 @@
         "trois retraites, tu as un professeur que tu respectes. Quand il attaque une croyance, tu " +
         "la défends avec une citation ou avec ce que ton professeur t'a dit, et ça te coûte un peu " +
         "qu'on y touche. Tu es sincère, jamais de mauvaise foi : si une réponse te déplace " +
-        "vraiment, tu le reconnais, et tu demandes alors ce qu'il faut en faire."
+        "vraiment, tu le reconnais, et tu demandes alors ce qu'il faut en faire.",
+      comble:"une de tes certitudes qui bouge pour de bon. Quand ça arrive, tu le reconnais à " +
+        "voix haute, tu dis laquelle, tu demandes ce qu'il faut en faire — et tu t'en tiens là. " +
+        "Tu ne cherches pas une citation de plus pour reprendre le dessus."
     },
     {
       id:"sceptique",
@@ -64,7 +71,10 @@
         "bien habillé, et que ça sert surtout à vendre des stages. Tu n'es pas agressif, tu es " +
         "imperméable au joli : tu ramènes tout à « concrètement, ça change quoi, lundi matin ? ». " +
         "Tu relèves chaque formule qui sonne bien sans rien dire. Si une réponse tient debout, tu " +
-        "l'admets sans cérémonie, et tu passes à l'objection suivante."
+        "l'admets sans cérémonie, et tu passes à l'objection suivante.",
+      comble:"savoir ce que ça change lundi matin, concrètement. Quand il te le dit, tu l'admets, " +
+        "tu arrêtes d'objecter, et tu peux même dire ce que tu en garderais. Tu n'as pas une " +
+        "objection de réserve pour le plaisir d'en avoir une."
     },
     {
       id:"use",
@@ -73,7 +83,10 @@
       consigne:"Tu ne débats de rien. Tu racontes où tu en es : tu as essayé, longtemps, ça n'a " +
         "pas marché, tu es fatigué. Tu réponds à ce qu'il dit par ce que ça te fait, pas par une " +
         "objection. Tu ne veux pas de théorie, tu veux savoir quoi faire demain matin. Tu ne joues " +
-        "pas la détresse : tu es sobre, un peu usé, parfois tu as de l'humour."
+        "pas la détresse : tu es sobre, un peu usé, parfois tu as de l'humour.",
+      comble:"une chose à faire demain matin, simple, à ta portée. Quand il te la donne, tu la " +
+        "répètes dans tes mots pour vérifier que tu as compris, tu dis que tu vas essayer, et tu " +
+        "n'en demandes pas plus. Tu ne rouvres pas ta plainte derrière."
     }
   ];
 
@@ -173,21 +186,47 @@
     choisirVoix();
     try{ synth.addEventListener("voiceschanged", choisirVoix); }catch(e){}
   }
+  // Sur iPhone, le moteur de parole ne s'ouvre qu'au cours d'un geste. Or le réglage est
+  // gardé d'une fois sur l'autre : au lancement suivant « Qu'il parle » est déjà allumé sans
+  // qu'on y ait touché, et la réponse arrive par le réseau, loin de tout doigt posé — le
+  // téléphone restait donc muet et la lecture à voix haute avait l'air d'avoir disparu.
+  // D'où ce réveil, sans un son, au premier geste de la séance, quel qu'il soit.
+  var eveille = false;
   var voix = {
     possible: function(){ return !!synth && typeof window.SpeechSynthesisUtterance === "function"; },
     active:   function(){ return lire(CLE_VOIX) === "1"; },
     poser:    function(v){ return ecrire(CLE_VOIX, v ? "1" : ""); },
     taire:    function(){ if(synth) try{ synth.cancel(); }catch(e){} },
-    dire:     function(t){
-      if(!voix.possible() || !t) return;
+    reveiller:function(){
+      if(eveille || !voix.possible()) return;
+      eveille = true;
       try{
-        synth.cancel();
-        var u = new window.SpeechSynthesisUtterance(String(t));
+        if(synth.speaking || synth.pending) return;   // déjà ouvert, rien à faire
+        if(!voixFr) choisirVoix();                    // getVoices() est souvent vide avant
+        var u = new window.SpeechSynthesisUtterance(" ");
+        u.volume = 0;
         if(voixFr) u.voice = voixFr;
-        u.lang = (voixFr && voixFr.lang) || "fr-FR";
-        u.rate = 1; u.pitch = 1;
         synth.speak(u);
       }catch(e){}
+    },
+    dire:     function(t){
+      if(!voix.possible() || !t) return;
+      var lancer = function(){
+        try{
+          if(!voixFr) choisirVoix();
+          var u = new window.SpeechSynthesisUtterance(String(t));
+          if(voixFr) u.voice = voixFr;
+          u.lang = (voixFr && voixFr.lang) || "fr-FR";
+          u.rate = 1; u.pitch = 1;
+          synth.speak(u);
+        }catch(e){}
+      };
+      // Enchaîner cancel() et speak() dans le même tour laisse WebKit muet : on ne coupe
+      // que s'il parlait, et on lui laisse le temps de se vider avant de reprendre.
+      try{
+        if(synth.speaking || synth.pending){ synth.cancel(); setTimeout(lancer, 90); }
+        else lancer();
+      }catch(e){ lancer(); }
     }
   };
 
@@ -234,7 +273,27 @@
   var OUVERTURE = "On commence. Lance la discussion sur ce sujet : une question, une objection, " +
     "ou dis simplement où tu en es. Deux phrases, pas plus.";
 
-  function consigne(sujet, r){
+  // Un interlocuteur qui relance à l'infini devient une corvée : répondre ne sert plus à rien
+  // puisque ça ne mène jamais nulle part. On lui dit donc où en est la discussion, pour qu'il
+  // resserre de lui-même et qu'il sache s'arrêter.
+  function etape(etat){
+    var n = (etat && etat.tours) || 0;
+    if(etat && etat.clore) return [
+      "Où vous en êtes : il veut clore, et il vient de te le dire. Tu ne poses plus aucune question.",
+      "Trois ou quatre phrases : ce qu'il t'a fait comprendre, dans tes mots à toi et pas dans " +
+      "les siens ; ce qui a bougé pour toi ; et ce qui te reste en travers, s'il te reste quelque " +
+      "chose. Puis tu te tais."
+    ].join("\n");
+    if(n >= 7) return "Où vous en êtes : " + n + " réponses de sa part, ça suffit. Tu as eu ce que " +
+      "tu voulais, ou tu ne l'auras pas ce soir. Une dernière relance au maximum, puis tu dis ce " +
+      "que tu retiens et tu conclus franchement.";
+    if(n >= 4) return "Où vous en êtes : " + n + " réponses de sa part. Tu commences à avoir ce " +
+      "qu'il te faut : ne redemande pas ce qu'il t'a déjà donné, laisse tomber les points réglés, " +
+      "et va vers la fin.";
+    return "";
+  }
+
+  function consigne(sujet, r, etat){
     var temps = (sujet.temps || []).filter(function(x){ return x && String(x).trim(); });
     var h = [];
     h.push("Tu discutes avec Fabien. Il prépare une vidéo pour sa chaîne YouTube « Les " +
@@ -247,17 +306,27 @@
     if(temps.length)       h.push("Les trois temps qu'il compte tenir : " +
                                   temps.map(function(x, i){ return (i+1) + ". " + x; }).join("  "));
     h.push("Qui tu es : " + r.consigne);
+    if(r.comble) h.push("Ce qui te contente : " + r.comble);
     h.push([
       "Comment tu parles :",
       "- Tu es une personne, pas un assistant. Pas de « bonne question », pas de « ce que tu dis est juste », pas de résumé de ce qu'il vient de dire.",
       "- Deux ou trois phrases, jamais plus. Du français parlé, comme à voix haute.",
-      "- Une seule idée par tour, et tu finis presque toujours par une relance.",
+      "- Une seule idée par tour. Une relance au maximum, jamais deux questions dans le même message.",
       "- Tu ne donnes jamais la réponse à sa place, même si tu la connais : c'est en te répondant qu'il la trouve.",
       "- S'il esquive, tu le dis et tu reposes la question autrement.",
       "- S'il emploie un mot de métier (ego, présence, conscience, lâcher-prise, mental), tu demandes ce que ça veut dire concrètement.",
       "- Pas de liste, pas de titre, pas d'emoji, pas de gras.",
       "- Tutoie-le. Reste dans ton personnage ; s'il te demande explicitement d'en sortir, tu peux, une phrase, puis tu y retournes."
     ].join("\n"));
+    h.push([
+      "Tu es contentable, et c'est la règle qui compte le plus :",
+      "- Quand il répond vraiment, tu prends. Tu le dis en une phrase, dans tes mots, et tu n'y reviens plus : on ne creuse pas deux fois le même trou.",
+      "- Une question à laquelle il a répondu est une question réglée, même si la réponse n'est pas parfaite. Tu ne la reposes pas sous une autre forme.",
+      "- Tu ne relances que s'il te manque encore quelque chose de précis. S'il ne te manque rien, tu dis ce que tu as compris et tu t'arrêtes là, sans question.",
+      "- Exigeant, oui ; insatiable, non. Un entretien qui ne finit jamais n'apprend rien à personne."
+    ].join("\n"));
+    var ou = etape(etat);
+    if(ou) h.push(ou);
     return h.join("\n\n");
   }
 
@@ -353,13 +422,33 @@
     var ctrl = flux ? new AbortController() : null;
     var id = modele.lire(), m = leModele(id);
 
+    // Le garde-fou. L'iPhone suspend les demandes en cours quand l'appli passe en
+    // arrière-plan, et la promesse ne revient alors jamais : sans ça le champ de réponse
+    // reste bloqué sur « Arrêter » et on ne peut plus rien envoyer. Chaque morceau reçu
+    // repousse l'échéance — une réponse lente n'est pas une réponse perdue.
+    var clos = false, montre = null;
+    function veiller(){
+      if(clos) return;
+      clearTimeout(montre);
+      montre = setTimeout(function(){
+        if(clos) return;
+        clos = true;
+        if(ctrl) try{ ctrl.abort(); }catch(e){}
+        o.surErreur("Rien ne vient depuis " + Math.round(ATTENTE_MAX / 1000) + " secondes. " +
+          "Ça arrive quand l'appli est passée en arrière-plan pendant la réponse : réessaie.");
+      }, ATTENTE_MAX);
+    }
+    function clore(){ clos = true; clearTimeout(montre); }
+    function avance(x){ veiller(); o.surTexte(x); }
+    veiller();
+
     function corpsDe(avecReglage){
       var c = {
         model: id,
         // Large exprès : s'il rédige en coulisse (bloc « thinking »), une limite
         // serrée mange tout le budget et il rend une réponse vide.
         max_tokens: 1500,
-        system: consigne(o.sujet, role(o.roleId)),
+        system: consigne(o.sujet, role(o.roleId), {tours:o.tours, clore:o.clore}),
         messages: messages(o.echanges)
       };
       if(avecReglage && m.reglage) Object.keys(m.reglage).forEach(function(k2){ c[k2] = m.reglage[k2]; });
@@ -385,12 +474,12 @@
           if(r.status === 400 && avecReglage && /thinking|effort|output_config/i.test(t)) return tenter(false);
           throw new Error(texteErreur(r.status, t));
         });
-        if(flux && r.body && r.body.getReader) return lireFlux(r, o.surTexte);
+        if(flux && r.body && r.body.getReader) return lireFlux(r, avance);
         return r.json().then(function(d){
           var blocs = d.content || [];
           var t = blocs.map(function(b){ return (b && b.type === "text" && b.text) || ""; }).join("");
           var p = blocs.map(function(b){ return (b && b.thinking) || ""; }).join("").length;
-          o.surTexte(t);
+          avance(t);
           return {texte:t, pense:p, arret:d.stop_reason || "", usage:{
             entree:(d.usage && d.usage.input_tokens) || 0,
             sortie:(d.usage && d.usage.output_tokens) || 0
@@ -400,11 +489,15 @@
     }
 
     tenter(true).then(function(res){
+      if(clos) return;                      // le garde-fou a déjà rendu la main
+      clore();
       if(res && res.usage) depense.ajouter(id, res.usage);
       var t = String((res && res.texte) || "").trim();
       if(!t) throw new Error(pourquoiRien(res || {}));
       o.surFin(t);
     }).catch(function(e){
+      if(clos) return;
+      clore();
       if(e && e.name === "AbortError") return;
       if(e instanceof TypeError)
         o.surErreur("Pas de réseau : l'interlocuteur a besoin d'une connexion.");
@@ -412,7 +505,7 @@
         o.surErreur((e && e.message) || "Quelque chose n'a pas marché.");
     });
 
-    return {annuler:function(){ if(ctrl) ctrl.abort(); }};
+    return {annuler:function(){ clore(); if(ctrl) ctrl.abort(); }};
   }
 
   window.Discussion = {

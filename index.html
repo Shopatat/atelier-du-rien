@@ -2,7 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Pas de zoom : sur un téléphone, un pincement ou un double-touche par mégarde laisse la
+     page de travers et les boutons hors de l'écran. Le défilement, lui, reste entier.
+     Un onglet Safari ignore « user-scalable », une appli posée sur l'écran d'accueil l'écoute ;
+     l'autre moitié du garde-fou est dans le CSS : aucun champ sous 16px, sinon iOS zoome seul. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#E9EBE7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101413" media="(prefers-color-scheme: dark)">
 <title>L'atelier du rien</title>
