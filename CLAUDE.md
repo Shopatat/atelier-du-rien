@@ -23,7 +23,9 @@
   grand (`.solde`), pas le dépensé : Fabien veut un compte qui descend, lisible sans se rappeler de
   combien il est parti. Sans crédit déclaré, pas de reste possible : on retombe sur le dépensé seul.
   Le même chiffre est repris en réduction (`.solde-mini`) dans la barre du mode tournage, qui ne
-  défile pas : c'est là qu'on dépense, donc c'est là qu'il faut le voir bouger.
+  défile pas : c'est là qu'on dépense, donc c'est là qu'il faut le voir bouger. C'est un bouton :
+  il ouvre la saisie du crédit sur place (`.solde-saisie`), parce que c'est en discutant qu'on
+  s'aperçoit qu'on ne l'a jamais renseigné.
 - Réflexion : le modèle vif part avec `thinking:{type:"between_tools"}` + `effort:"low"` — pour trois
   phrases, réfléchir avant de parler coûte du temps et des jetons, et avec une limite serrée ça rendait
   des réponses vides. Le profond garde sa réflexion (`effort:"medium"`, on ne peut pas la couper sur

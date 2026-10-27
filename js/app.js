@@ -512,6 +512,7 @@
     arreterCauserie();
     arreterDictee();
     causerie.sujetId = null;
+    el("solde-saisie").hidden = true;
     el("plateau").hidden = true;
     chrono.actif = false; chrono.fige = 0;
     clearInterval(chrono.timer); chrono.timer = null;
@@ -741,12 +742,15 @@
     // Sans clé, rien ne se consomme : inutile d'encombrer la barre.
     if(!window.Discussion.cle.presente()){ z.hidden = true; return; }
     var d = window.Discussion.depense.lire(), paye = window.Discussion.depense.dollars();
-    z.hidden = false;
+    // Si la saisie du crédit est ouverte, elle garde la place.
+    var saisie = el("solde-saisie");
+    z.hidden = !!(saisie && !saisie.hidden);
     if(!d.credit){
       z.className = "solde-mini";
       z.innerHTML = '<span class="solde-mini-chiffre">' + esc(sous(paye)) + '</span>' +
                     '<span class="solde-mini-mot">dépensés</span>';
-      z.setAttribute("aria-label", sous(paye) + " dépensés depuis cet appareil");
+      z.setAttribute("aria-label",
+        sous(paye) + " dépensés — touche pour dire ce que tu as chargé et voir ce qu'il en reste");
       return;
     }
     var reste = Math.max(0, d.credit - paye);
@@ -756,6 +760,24 @@
                   '<span class="solde-mini-barre"><i style="width:' + part.toFixed(1) + '%"></i></span>';
     z.setAttribute("aria-label",
       "Il te reste environ " + sous(reste) + " sur les " + sous(d.credit) + " chargés");
+  }
+
+  // Le crédit se règle aussi depuis le plateau : descendre en bas de la page pour ça,
+  // c'était quitter la discussion au moment précis où on voulait la suivre.
+  function ouvrirSaisieCredit(){
+    var b = el("solde-plateau"), s = el("solde-saisie"), ch = el("credit-plateau");
+    if(!b || !s || !ch || !window.Discussion) return;
+    var d = window.Discussion.depense.lire();
+    ch.value = d.credit ? String(d.credit) : "";
+    b.hidden = true; s.hidden = false;
+    ch.focus(); ch.select();
+  }
+  function validerSaisieCredit(){
+    var s = el("solde-saisie"), ch = el("credit-plateau");
+    if(!s || !ch || !window.Discussion) return;
+    window.Discussion.depense.credit(ch.value);
+    s.hidden = true;
+    rendreDepense();
   }
 
   function rendreDepense(){
@@ -829,6 +851,8 @@
     if(!b) return;
     var act = b.dataset.act, id = b.dataset.id;
 
+    if(act === "solde-credit"){ ouvrirSaisieCredit(); return; }
+    if(act === "solde-credit-ok"){ validerSaisieCredit(); return; }
     if(act === "causerie-ouvrir" || act === "causerie-reessayer"){ faireParler(causerie.sujetId, ""); return; }
     if(act === "dicter"){ basculerDictee(); return; }
     if(act === "voix"){
@@ -1096,6 +1120,11 @@
   });
 
   document.addEventListener("keydown", function(e){
+    // Dans la saisie du crédit : Entrée valide, Échap referme sans quitter le plateau.
+    if(e.target && e.target.id === "credit-plateau"){
+      if(e.key === "Enter"){ e.preventDefault(); validerSaisieCredit(); return; }
+      if(e.key === "Escape"){ e.preventDefault(); el("solde-saisie").hidden = true; rendreDepense(); return; }
+    }
     if(e.key === "Escape" && !el("plateau").hidden){ fermerPlateau(); return; }
     // Dans le fil : Ctrl (ou Cmd) + Entrée envoie, Entrée seule va à la ligne.
     if(e.key === "Enter" && (e.metaKey || e.ctrlKey) && e.target && e.target.id === "ma-reponse"){

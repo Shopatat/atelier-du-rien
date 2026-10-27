@@ -40,7 +40,8 @@ L'appli s'ouvre alors en plein écran avec son icône, et marche hors ligne apr�
   qu'il en reste** qui s'affiche en grand, avec une barre qui descend vers zéro — un compte à rebours se lit
   sans avoir à se rappeler de combien on est parti. Elle passe à l'ambre sous le cinquième du crédit, au rouge
   à zéro. Le même chiffre est repris en petit dans la barre du mode tournage, là où on dépense :
-  il bouge sous les yeux à chaque réponse, sans avoir à quitter la discussion. Le chiffre qui fait foi reste celui de la page Cost de la console.
+  il bouge sous les yeux à chaque réponse, sans avoir à quitter la discussion. Il se touche, aussi —
+  c'est là qu'on dit ce qu'on a chargé, sans redescendre en bas de la page. Le chiffre qui fait foi reste celui de la page Cost de la console.
 - **Le rythme** : les dix dernières semaines en grille, la série de jours en cours, le record, le compte du mois,
   et la semaine en cours face à la cadence visée (5/semaine par défaut).
 - **La banque** : 70 sujets livrés sur 12 thèmes — éveil, pièges, mental, méditation, non-dualité, corps, émotions,
